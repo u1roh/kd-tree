@@ -100,3 +100,98 @@ fn kd_search_nearest<'a, T, P: Array>(
         );
     }
 }
+
+fn distance_squared2<T, A>(
+    dim: usize,
+    p1: &(impl std::ops::Index<usize, Output = A> + ?Sized),
+    p2: &T,
+    get: impl Fn(&T, usize) -> A,
+) -> A
+where
+    A: num_traits::NumAssign + Copy,
+{
+    let mut distance = <A as num_traits::Zero>::zero();
+    for i in 0..dim {
+        let diff = p1[i] - get(p2, i);
+        distance += diff * diff;
+    }
+    distance
+}
+
+pub fn kd_find_nearest2<'a, T, Q, A>(
+    sorted: &'a [T],
+    get: impl Fn(&T, usize) -> A + Copy,
+    query: &impl AsRef<Q>,
+    dim: usize,
+) -> (&'a T, A)
+where
+    Q: std::ops::Index<usize, Output = A> + ?Sized,
+    A: num_traits::NumAssign + Copy + PartialOrd + std::fmt::Display,
+{
+    assert!(!sorted.is_empty());
+    let mut best = &sorted[0];
+    let mut nearest_distance = distance_squared2(dim, query.as_ref(), best, get);
+    kd_search_nearest2(
+        sorted,
+        get,
+        query.as_ref(),
+        dim,
+        0,
+        &mut best,
+        &mut nearest_distance,
+    );
+    (best, nearest_distance)
+}
+
+fn kd_search_nearest2<'a, T, A>(
+    sorted: &'a [T],
+    get: impl Fn(&T, usize) -> A + Copy,
+    query: &(impl std::ops::Index<usize, Output = A> + ?Sized),
+    dim: usize,
+    axis: usize,
+    best: &mut &'a T,
+    nearest_distance: &mut A,
+) where
+    A: num_traits::NumAssign + Copy + PartialOrd,
+{
+    if sorted.is_empty() {
+        return;
+    }
+    let mid_idx = sorted.len() / 2;
+    let distance = distance_squared2(dim, query, &sorted[mid_idx], get);
+    if distance < *nearest_distance {
+        *nearest_distance = distance;
+        *best = &sorted[mid_idx];
+        use num_traits::Zero;
+        if nearest_distance.is_zero() {
+            return;
+        }
+    }
+    let mid_pos = get(&sorted[mid_idx], axis);
+    let [branch1, branch2] = if query[axis] < mid_pos {
+        [&sorted[..mid_idx], &sorted[mid_idx + 1..]]
+    } else {
+        [&sorted[mid_idx + 1..], &sorted[..mid_idx]]
+    };
+    kd_search_nearest2(
+        branch1,
+        get,
+        query,
+        dim,
+        (axis + 1) % dim,
+        best,
+        nearest_distance,
+    );
+    let diff = query[axis] - mid_pos;
+    if diff * diff < *nearest_distance {
+        kd_search_nearest2(
+            branch2,
+            get,
+            query,
+            dim,
+            (axis + 1) % dim,
+            best,
+            nearest_distance,
+        );
+    }
+}

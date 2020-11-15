@@ -15,6 +15,14 @@ fn main() {
         }
         println!("nearest search: elapsed {:?}", now.elapsed());
     }
+    {
+        let now = std::time::Instant::now();
+        for p in &points {
+            let (nearest, _) = kd_tree::kd::kd_find_nearest2(&points, |p, k| p[k], p, 3);
+            assert_eq!(nearest, p);
+        }
+        println!("nearest search: elapsed {:?}", now.elapsed());
+    }
 }
 
 fn gen_points(count: usize) -> Vec<[f64; 3]> {
