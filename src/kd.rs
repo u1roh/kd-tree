@@ -1,4 +1,5 @@
 use crate::Point;
+use std::cmp::Ordering;
 
 pub fn kd_sort_indexables<Scalar: Copy + Ord>(
     items: &mut [impl std::ops::Index<usize, Output = Scalar>],
@@ -70,6 +71,33 @@ fn distance_squared<P: Point, T>(
         distance += diff * diff;
     }
     distance
+}
+
+pub struct KdTree<'a, T, F, N> {
+    pub source: &'a [T],
+    pub get: F,
+    dim: std::marker::PhantomData<N>,
+}
+
+impl<'a, T, F, N, A: Copy> KdTree<'a, T, F, N>
+where
+    N: typenum::Unsigned + typenum::NonZero,
+    F: Fn(&T, usize) -> A + Copy,
+{
+    pub fn new(source: &'a mut [T], get: F, compare: impl Fn(A, A) -> Ordering + Copy) -> Self {
+        kd_sort_by(source, N::to_usize(), get, compare);
+        Self {
+            source,
+            get,
+            dim: std::marker::PhantomData,
+        }
+    }
+    pub fn nearest<Q: Point<Dim = N, Scalar = A>>(&self, query: &Q) -> Nearest<'a, T, Q>
+    where
+        A: num_traits::NumAssign + PartialOrd,
+    {
+        kd_find_nearest(self.source, self.get, query)
+    }
 }
 
 #[derive(Debug)]

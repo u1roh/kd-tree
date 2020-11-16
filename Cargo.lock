@@ -29,8 +29,10 @@ version = "0.1.0"
 dependencies = [
  "num-traits",
  "ordered-float",
+ "paste",
  "pdqselect",
  "rand",
+ "typenum",
 ]
 
 [[package]]
@@ -56,6 +58,12 @@ checksum = "9fe9037165d7023b1228bc4ae9a2fa1a2b0095eca6c2998c624723dfd01314a5"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "paste"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7151b083b0664ed58ed669fcdd92f01c3d2fdbf10af4931a301474950b52bfa9"
 
 [[package]]
 name = "pdqselect"
@@ -109,6 +117,12 @@ checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
 dependencies = [
  "rand_core",
 ]
+
+[[package]]
+name = "typenum"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "373c8a200f9e67a0c95e62a4f52fbf80c23b4381c05a17845531982fa99e6b33"
 
 [[package]]
 name = "wasi"

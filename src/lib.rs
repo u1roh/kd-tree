@@ -3,6 +3,7 @@ pub mod kd;
 
 pub trait Point {
     type Scalar: num_traits::NumAssign + Copy + PartialOrd;
+    type Dim: typenum::Unsigned + typenum::NonZero;
     const DIM: usize;
     fn at(&self, i: usize) -> Self::Scalar;
 }
@@ -10,10 +11,13 @@ pub trait Point {
 macro_rules! impl_points {
     ($($len:literal),*) => {
         $(
-            impl<T: num_traits::NumAssign + Copy + PartialOrd> Point for [T; $len] {
-                type Scalar = T;
-                const DIM: usize = $len;
-                fn at(&self, i: usize) -> T { self[i] }
+            paste::paste!{
+                impl<T: num_traits::NumAssign + Copy + PartialOrd> Point for [T; $len] {
+                    type Scalar = T;
+                    type Dim = typenum::[<U $len>];
+                    const DIM: usize = $len;
+                    fn at(&self, i: usize) -> T { self[i] }
+                }
             }
         )*
     };
