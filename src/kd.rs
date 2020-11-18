@@ -128,9 +128,6 @@ pub fn kd_nearest_by<'a, T, P: Point>(
         query: &Q,
         axis: usize,
     ) {
-        if kdtree.is_empty() {
-            return;
-        }
         let mid_idx = kdtree.len() / 2;
         let item = &kdtree[mid_idx];
         let distance = distance_squared(query, item, get);
@@ -148,10 +145,14 @@ pub fn kd_nearest_by<'a, T, P: Point>(
         } else {
             [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
         };
-        recurse(nearest, branch1, get, query, (axis + 1) % Q::DIM);
-        let diff = query.at(axis) - mid_pos;
-        if diff * diff < nearest.distance {
-            recurse(nearest, branch2, get, query, (axis + 1) % Q::DIM);
+        if !branch1.is_empty() {
+            recurse(nearest, branch1, get, query, (axis + 1) % Q::DIM);
+        }
+        if !branch2.is_empty() {
+            let diff = query.at(axis) - mid_pos;
+            if diff * diff < nearest.distance {
+                recurse(nearest, branch2, get, query, (axis + 1) % Q::DIM);
+            }
         }
     }
     assert!(!kdtree.is_empty());
@@ -192,9 +193,6 @@ where
     ) where
         Scalar: num_traits::NumAssign + Copy + PartialOrd,
     {
-        if kdtree.is_empty() {
-            return;
-        }
         let mid_idx = kdtree.len() / 2;
         let mid = &kdtree[mid_idx];
         let distance = distance(mid, dim, kd_difference);
@@ -212,10 +210,14 @@ where
         } else {
             [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
         };
-        recurse(nearest, branch1, (axis + 1) % dim, dim, kd_difference);
-        let diff = kd_difference(mid, axis);
-        if diff * diff < nearest.distance {
-            recurse(nearest, branch2, (axis + 1) % dim, dim, kd_difference);
+        if !branch1.is_empty() {
+            recurse(nearest, branch1, (axis + 1) % dim, dim, kd_difference);
+        }
+        if !branch2.is_empty() {
+            let diff = kd_difference(mid, axis);
+            if diff * diff < nearest.distance {
+                recurse(nearest, branch2, (axis + 1) % dim, dim, kd_difference);
+            }
         }
     }
     assert!(!kdtree.is_empty());
