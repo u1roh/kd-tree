@@ -83,6 +83,28 @@ pub fn kd_sort_by<T, A>(
     recurse(items, dim, 0, get, compare);
 }
 
+pub fn kd_sort_by2<T>(
+    items: &mut [T],
+    dim: usize,
+    kd_compare: impl Fn(&T, &T, usize) -> Ordering + Copy,
+) {
+    fn recurse<T>(
+        items: &mut [T],
+        axis: usize,
+        dim: usize,
+        kd_compare: impl Fn(&T, &T, usize) -> Ordering + Copy,
+    ) {
+        if items.len() >= 2 {
+            pdqselect::select_by(items, items.len() / 2, |x, y| kd_compare(x, y, axis));
+            let mid = items.len() / 2;
+            let axis = (axis + 1) % dim;
+            recurse(&mut items[..mid], axis, dim, kd_compare);
+            recurse(&mut items[mid + 1..], axis, dim, kd_compare);
+        }
+    }
+    recurse(items, 0, dim, kd_compare);
+}
+
 fn distance_squared<P: Point, T>(
     p1: &P,
     p2: &T,
