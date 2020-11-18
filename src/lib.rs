@@ -34,21 +34,22 @@ impl<'a, T: Point> KdTree<'a, T> {
         source: &'a mut [T],
         compare: impl Fn(T::Scalar, T::Scalar) -> Ordering + Copy,
     ) -> Self {
-        kd::kd_sort_points_by(source, compare);
+        kd::kd_sort_by(source, T::DIM, |item1, item2, k| {
+            compare(item1.at(k), item2.at(k))
+        });
         Self(source)
     }
     pub fn sort_by_key<Key: Ord>(
         source: &'a mut [T],
         key: impl Fn(T::Scalar) -> Key + Copy,
     ) -> Self {
-        kd::kd_sort_points_by_key(source, key);
-        Self(source)
+        Self::sort_by(source, |a, b| key(a).cmp(&key(b)))
     }
     pub fn sort(source: &'a mut [T]) -> Self
     where
         T::Scalar: Ord,
     {
-        kd::kd_sort_points(source);
+        kd::kd_sort(source);
         Self(source)
     }
     pub fn nearest(
