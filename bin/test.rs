@@ -25,9 +25,9 @@ fn main() {
     }
     {
         //let kdtree = kd_tree::kd::KdTree::<_, [f64; 3], _>::sort_by_key(
-        let kdtree = kd_tree::kd::KdTree3::sort_by_key(&mut points, |p, k| p[k], OrderedFloat);
+        let kdtree = kd_tree::kd::KdTreeRef3::sort_points_by(&mut points, OrderedFloat);
         let now = std::time::Instant::now();
-        for p in kdtree.iter() {
+        for p in kdtree.items() {
             //let nearest = kd_tree::kd::kd_find_nearest(&points, |p, k| p[k], p);
             let nearest = kdtree.nearest(p);
             assert_eq!(nearest.item, p);
