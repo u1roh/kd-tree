@@ -40,42 +40,45 @@ pub fn kd_sort_by<T>(
     recurse(items, 0, dim, kd_compare);
 }
 
-fn distance_squared<P: Point, T>(
-    p1: &P,
-    p2: &T,
-    get: impl Fn(&T, usize) -> P::Scalar,
-) -> P::Scalar {
-    let mut distance = <P::Scalar as num_traits::Zero>::zero();
-    for i in 0..P::DIM {
-        let diff = p1.at(i) - get(p2, i);
-        distance += diff * diff;
+pub struct KdTree<'a, T, N, F> {
+    source: &'a [T],
+    get: F,
+    dim: std::marker::PhantomData<N>,
+}
+pub type KdTree2<'a, T, F> = KdTree<'a, T, typenum::U2, F>;
+pub type KdTree3<'a, T, F> = KdTree<'a, T, typenum::U3, F>;
+impl<'a, T, N, F> std::ops::Deref for KdTree<'a, T, N, F> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.source
     }
-    distance
 }
-
-pub struct KdTree<'a, T, P: Point, F> {
-    pub source: &'a [T],
-    pub get: F,
-    point_type: std::marker::PhantomData<P>,
-}
-
-impl<'a, T, P: Point, F> KdTree<'a, T, P, F>
+impl<'a, T, N, F, Scalar> KdTree<'a, T, N, F>
 where
-    F: Fn(&T, usize) -> P::Scalar + Copy,
+    N: typenum::Unsigned + typenum::NonZero,
+    F: Fn(&T, usize) -> Scalar + Copy,
+    Scalar: Copy + PartialOrd + num_traits::NumAssign,
 {
     fn new(source: &'a [T], get: F) -> Self {
         Self {
             source,
             get,
-            point_type: std::marker::PhantomData,
+            dim: std::marker::PhantomData,
         }
+    }
+    pub fn sort(source: &'a mut [T], get: F) -> Self
+    where
+        Scalar: Ord,
+    {
+        kd_sort_by_key(source, N::to_usize(), get);
+        Self::new(source, get)
     }
     pub fn sort_by(
         source: &'a mut [T],
         get: F,
-        compare: impl Fn(P::Scalar, P::Scalar) -> Ordering + Copy,
+        compare: impl Fn(Scalar, Scalar) -> Ordering + Copy,
     ) -> Self {
-        kd_sort_by(source, P::DIM, |item1, item2, k| {
+        kd_sort_by(source, N::to_usize(), |item1, item2, k| {
             compare(get(item1, k), get(item2, k))
         });
         Self::new(source, get)
@@ -83,16 +86,13 @@ where
     pub fn sort_by_key<Key: Ord>(
         source: &'a mut [T],
         get: F,
-        key: impl Fn(P::Scalar) -> Key + Copy,
+        key: impl Fn(Scalar) -> Key + Copy,
     ) -> Self {
-        kd_sort_by_key(source, P::DIM, |item, k| key(get(item, k)));
+        kd_sort_by_key(source, N::to_usize(), |item, k| key(get(item, k)));
         Self::new(source, get)
     }
-    pub fn nearest<Q: Point<Dim = P::Dim, Scalar = P::Scalar>>(
-        &self,
-        query: &Q,
-    ) -> Nearest<'a, T, P::Scalar> {
-        kd_find_nearest(self.source, self.get, query)
+    pub fn nearest<Q: Point<Dim = N, Scalar = Scalar>>(&self, query: &Q) -> Nearest<'a, T, Scalar> {
+        kd_nearest_by(self.source, query, self.get)
     }
 }
 
@@ -102,84 +102,7 @@ pub struct Nearest<'a, T, Scalar> {
     pub distance: Scalar,
 }
 
-impl<'a, T, Scalar> Nearest<'a, T, Scalar>
-where
-    Scalar: num_traits::NumAssign + Copy + PartialOrd,
-{
-    fn search<Q: Point<Scalar = Scalar>>(
-        &mut self,
-        kdtree: &'a [T],
-        get: impl Fn(&T, usize) -> Scalar + Copy,
-        query: &Q,
-        axis: usize,
-    ) {
-        if kdtree.is_empty() {
-            return;
-        }
-        let mid_idx = kdtree.len() / 2;
-        let item = &kdtree[mid_idx];
-        let distance = distance_squared(query, item, get);
-        if distance < self.distance {
-            self.item = item;
-            self.distance = distance;
-            if self.distance.is_zero() {
-                return;
-            }
-        }
-        let mid_pos = get(item, axis);
-        let [branch1, branch2] = if query.at(axis) < mid_pos {
-            [&kdtree[..mid_idx], &kdtree[mid_idx + 1..]]
-        } else {
-            [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
-        };
-        self.search(branch1, get, query, (axis + 1) % Q::DIM);
-        let diff = query.at(axis) - mid_pos;
-        if diff * diff < self.distance {
-            self.search(branch2, get, query, (axis + 1) % Q::DIM);
-        }
-    }
-    fn search2(
-        &mut self,
-        kdtree: &'a [T],
-        get: impl Fn(&T, usize) -> Scalar + Copy,
-        query: &[Scalar],
-        axis: usize,
-    ) {
-        if kdtree.is_empty() {
-            return;
-        }
-        let mid_idx = kdtree.len() / 2;
-        let item = &kdtree[mid_idx];
-        let distance = Self::distance_squared(query, item, get);
-        if distance < self.distance {
-            *self = Nearest { item, distance };
-            if self.distance.is_zero() {
-                return;
-            }
-        }
-        let mid_pos = get(item, axis);
-        let [branch1, branch2] = if query[axis] < mid_pos {
-            [&kdtree[..mid_idx], &kdtree[mid_idx + 1..]]
-        } else {
-            [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
-        };
-        self.search2(branch1, get, query, (axis + 1) % query.len());
-        let diff = query[axis] - mid_pos;
-        if diff * diff < self.distance {
-            self.search2(branch2, get, query, (axis + 1) % query.len());
-        }
-    }
-    fn distance_squared(p1: &[Scalar], p2: &T, get: impl Fn(&T, usize) -> Scalar) -> Scalar {
-        let mut distance = <Scalar as num_traits::Zero>::zero();
-        for (i, a) in p1.iter().enumerate() {
-            let diff = *a - get(p2, i);
-            distance += diff * diff;
-        }
-        distance
-    }
-}
-
-pub fn kd_find_nearest_by<T, Scalar>(
+pub fn kd_nearest_with<T, Scalar>(
     kdtree: &[T],
     dim: usize,
     kd_difference: impl Fn(&T, usize) -> Scalar + Copy,
@@ -243,174 +166,68 @@ where
     nearest
 }
 
-pub fn kd_find_nearest3<'a, T: Point>(
+pub fn kd_nearest<'a, T: Point>(
     kdtree: &'a [T],
     query: &impl Point<Scalar = T::Scalar, Dim = T::Dim>,
 ) -> Nearest<'a, T, T::Scalar> {
-    kd_find_nearest(kdtree, |item, k| item.at(k), query)
+    kd_nearest_by(kdtree, query, |item, k| item.at(k))
 }
 
-pub fn kd_find_nearest2<'a, T, Scalar>(
+pub fn kd_nearest_by<'a, T, P: Point>(
     kdtree: &'a [T],
-    get: impl Fn(&T, usize) -> Scalar + Copy,
-    query: &[Scalar],
-) -> Nearest<'a, T, Scalar>
-where
-    Scalar: num_traits::NumAssign + Copy + PartialOrd,
-{
-    //kd_find_nearest_by(kdtree, query.len(), |item, k| query[k] - get(item, k))
-    assert!(!kdtree.is_empty());
-    let mut nearest = Nearest {
-        item: &kdtree[0],
-        distance: Nearest::distance_squared(query, &kdtree[0], get),
-    };
-    nearest.search2(kdtree, get, query, 0);
-    //kd_search_nearest(kdtree, get, query, 0, &mut nearest);
-    nearest
-}
-
-pub fn kd_find_nearest<'a, T, P: Point>(
-    kdtree: &'a [T],
-    get: impl Fn(&T, usize) -> P::Scalar + Copy,
     query: &P,
+    get: impl Fn(&T, usize) -> P::Scalar + Copy,
 ) -> Nearest<'a, T, P::Scalar> {
+    fn distance_squared<P: Point, T>(
+        p1: &P,
+        p2: &T,
+        get: impl Fn(&T, usize) -> P::Scalar,
+    ) -> P::Scalar {
+        let mut distance = <P::Scalar as num_traits::Zero>::zero();
+        for i in 0..P::DIM {
+            let diff = p1.at(i) - get(p2, i);
+            distance += diff * diff;
+        }
+        distance
+    }
+    fn recurse<'a, T, Q: Point>(
+        nearest: &mut Nearest<'a, T, Q::Scalar>,
+        kdtree: &'a [T],
+        get: impl Fn(&T, usize) -> Q::Scalar + Copy,
+        query: &Q,
+        axis: usize,
+    ) {
+        if kdtree.is_empty() {
+            return;
+        }
+        let mid_idx = kdtree.len() / 2;
+        let item = &kdtree[mid_idx];
+        let distance = distance_squared(query, item, get);
+        if distance < nearest.distance {
+            nearest.item = item;
+            nearest.distance = distance;
+            use num_traits::Zero;
+            if nearest.distance.is_zero() {
+                return;
+            }
+        }
+        let mid_pos = get(item, axis);
+        let [branch1, branch2] = if query.at(axis) < mid_pos {
+            [&kdtree[..mid_idx], &kdtree[mid_idx + 1..]]
+        } else {
+            [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
+        };
+        recurse(nearest, branch1, get, query, (axis + 1) % Q::DIM);
+        let diff = query.at(axis) - mid_pos;
+        if diff * diff < nearest.distance {
+            recurse(nearest, branch2, get, query, (axis + 1) % Q::DIM);
+        }
+    }
     assert!(!kdtree.is_empty());
     let mut nearest = Nearest {
         item: &kdtree[0],
         distance: distance_squared(query, &kdtree[0], get),
     };
-    nearest.search(kdtree, get, query, 0);
-    //kd_search_nearest(kdtree, get, query, 0, &mut nearest);
+    recurse(&mut nearest, kdtree, get, query, 0);
     nearest
 }
-
-fn kd_search_nearest<'a, T, P: Point>(
-    kdtree: &'a [T],
-    get: impl Fn(&T, usize) -> P::Scalar + Copy,
-    query: &P,
-    axis: usize,
-    nearest: &mut Nearest<'a, T, P::Scalar>,
-) {
-    if kdtree.is_empty() {
-        return;
-    }
-    let mid_idx = kdtree.len() / 2;
-    let distance = distance_squared(query, &kdtree[mid_idx], get);
-    if distance < nearest.distance {
-        *nearest = Nearest {
-            item: &kdtree[mid_idx],
-            distance,
-        };
-        use num_traits::Zero;
-        if nearest.distance.is_zero() {
-            return;
-        }
-    }
-    let mid_pos = get(&kdtree[mid_idx], axis);
-    let [branch1, branch2] = if query.at(axis) < mid_pos {
-        [&kdtree[..mid_idx], &kdtree[mid_idx + 1..]]
-    } else {
-        [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
-    };
-    kd_search_nearest(branch1, get, query, (axis + 1) % P::DIM, nearest);
-    let diff = query.at(axis) - mid_pos;
-    if diff * diff < nearest.distance {
-        kd_search_nearest(branch2, get, query, (axis + 1) % P::DIM, nearest);
-    }
-}
-
-/*
-fn distance_squared2<T, A>(
-    dim: usize,
-    p1: &(impl std::ops::Index<usize, Output = A> + ?Sized),
-    p2: &T,
-    get: impl Fn(&T, usize) -> A,
-) -> A
-where
-    A: num_traits::NumAssign + Copy,
-{
-    let mut distance = <A as num_traits::Zero>::zero();
-    for i in 0..dim {
-        let diff = p1[i] - get(p2, i);
-        distance += diff * diff;
-    }
-    distance
-}
-
-pub fn kd_find_nearest2<'a, T, Q, A>(
-    kdtree: &'a [T],
-    get: impl Fn(&T, usize) -> A + Copy,
-    query: &impl AsRef<Q>,
-    dim: usize,
-) -> (&'a T, A)
-where
-    Q: std::ops::Index<usize, Output = A> + ?Sized,
-    A: num_traits::NumAssign + Copy + PartialOrd + std::fmt::Display,
-{
-    assert!(!kdtree.is_empty());
-    let mut best = &kdtree[0];
-    let mut nearest_distance = distance_squared2(dim, query.as_ref(), best, get);
-    kd_search_nearest2(
-        kdtree,
-        get,
-        query.as_ref(),
-        dim,
-        0,
-        &mut best,
-        &mut nearest_distance,
-    );
-    (best, nearest_distance)
-}
-
-fn kd_search_nearest2<'a, T, A>(
-    kdtree: &'a [T],
-    get: impl Fn(&T, usize) -> A + Copy,
-    query: &(impl std::ops::Index<usize, Output = A> + ?Sized),
-    dim: usize,
-    axis: usize,
-    best: &mut &'a T,
-    nearest_distance: &mut A,
-) where
-    A: num_traits::NumAssign + Copy + PartialOrd,
-{
-    if kdtree.is_empty() {
-        return;
-    }
-    let mid_idx = kdtree.len() / 2;
-    let distance = distance_squared2(dim, query, &kdtree[mid_idx], get);
-    if distance < *nearest_distance {
-        *nearest_distance = distance;
-        *best = &kdtree[mid_idx];
-        if nearest_distance.is_zero() {
-            return;
-        }
-    }
-    let mid_pos = get(&kdtree[mid_idx], axis);
-    let [branch1, branch2] = if query[axis] < mid_pos {
-        [&kdtree[..mid_idx], &kdtree[mid_idx + 1..]]
-    } else {
-        [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
-    };
-    kd_search_nearest2(
-        branch1,
-        get,
-        query,
-        dim,
-        (axis + 1) % dim,
-        best,
-        nearest_distance,
-    );
-    let diff = query[axis] - mid_pos;
-    if diff * diff < *nearest_distance {
-        kd_search_nearest2(
-            branch2,
-            get,
-            query,
-            dim,
-            (axis + 1) % dim,
-            best,
-            nearest_distance,
-        );
-    }
-}
-*/

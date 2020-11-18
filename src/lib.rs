@@ -1,7 +1,6 @@
 pub mod array;
 pub mod kd;
 use std::cmp::Ordering;
-use std::marker::PhantomData;
 
 pub trait Point {
     type Scalar: num_traits::NumAssign + Copy + PartialOrd;
@@ -56,6 +55,6 @@ impl<'a, T: Point> KdTree<'a, T> {
         &self,
         query: &impl Point<Dim = T::Dim, Scalar = T::Scalar>,
     ) -> kd::Nearest<'a, T, T::Scalar> {
-        kd::kd_find_nearest(self.0, |p, k| p.at(k), query)
+        kd::kd_nearest_by(self.0, query, |p, k| p.at(k))
     }
 }

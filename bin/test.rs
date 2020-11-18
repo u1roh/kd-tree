@@ -10,35 +10,24 @@ fn main() {
     {
         let now = std::time::Instant::now();
         for p in &points {
-            let nearest = kd_tree::kd::kd_find_nearest(&points, |p, k| p[k], p);
+            let nearest = kd_tree::kd::kd_nearest_by(&points, p, |p, k| p[k]);
             assert_eq!(nearest.item, p);
         }
-        println!("kd_find_nearest: elapsed {:?}", now.elapsed());
+        println!("kd_nearest_by: elapsed {:?}", now.elapsed());
     }
     {
         let now = std::time::Instant::now();
         for p in &points {
-            let nearest = kd_tree::kd::kd_find_nearest2(&points, |p, k| p[k], p);
+            let nearest = kd_tree::kd::kd_nearest(&points, p);
             assert_eq!(nearest.item, p);
         }
-        println!("kd_find_nearest2: elapsed {:?}", now.elapsed());
+        println!("kd_nearest: elapsed {:?}", now.elapsed());
     }
     {
+        //let kdtree = kd_tree::kd::KdTree::<_, [f64; 3], _>::sort_by_key(
+        let kdtree = kd_tree::kd::KdTree3::sort_by_key(&mut points, |p, k| p[k], OrderedFloat);
         let now = std::time::Instant::now();
-        for p in &points {
-            let nearest = kd_tree::kd::kd_find_nearest3(&points, p);
-            assert_eq!(nearest.item, p);
-        }
-        println!("kd_find_nearest3: elapsed {:?}", now.elapsed());
-    }
-    {
-        let kdtree = kd_tree::kd::KdTree::<_, [f64; 3], _>::sort_by_key(
-            &mut points,
-            |p, k| p[k],
-            OrderedFloat,
-        );
-        let now = std::time::Instant::now();
-        for p in kdtree.source {
+        for p in kdtree.iter() {
             //let nearest = kd_tree::kd::kd_find_nearest(&points, |p, k| p[k], p);
             let nearest = kdtree.nearest(p);
             assert_eq!(nearest.item, p);
@@ -48,10 +37,10 @@ fn main() {
     {
         let now = std::time::Instant::now();
         for q in &points {
-            let nearest = kd_tree::kd::kd_find_nearest_by(&points, 3, |p, k| q[k] - p[k]);
+            let nearest = kd_tree::kd::kd_nearest_with(&points, 3, |p, k| q[k] - p[k]);
             assert_eq!(nearest.item, q);
         }
-        println!("kd_find_nearest_by: elapsed {:?}", now.elapsed());
+        println!("kd_nearest_with: elapsed {:?}", now.elapsed());
     }
 }
 
