@@ -38,6 +38,7 @@ impl<C: KdCollection, N: Unsigned> KdTree<C, N> {
     pub fn items(&self) -> &[C::Item] {
         self.0.items()
     }
+
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = <C::Item as KdPoint>::Scalar, Dim = <C::Item as KdPoint>::Dim>,
@@ -47,6 +48,7 @@ impl<C: KdCollection, N: Unsigned> KdTree<C, N> {
     {
         kd_nearest(self.items(), query)
     }
+
     pub fn nearest_by<Q: KdPoint>(
         &self,
         query: &Q,
@@ -78,15 +80,15 @@ impl<'a, T, N: Unsigned> KdTree<&'a [T], N> {
         })
     }
 
-    pub fn sort_points_by<Key: Ord, F>(points: &'a mut [T], f: F) -> Self
+    pub fn sort_by_ordered_float(points: &'a mut [T]) -> Self
     where
         T: KdPoint<Dim = N>,
-        F: Fn(T::Scalar) -> Key,
+        T::Scalar: num_traits::Float,
     {
-        Self::sort_by_key(points, |item, k| f(item.at(k)))
+        Self::sort_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
 
-    pub fn sort_points(points: &'a mut [T]) -> Self
+    pub fn sort(points: &'a mut [T]) -> Self
     where
         T: KdPoint<Dim = N>,
         T::Scalar: Ord,
@@ -118,15 +120,15 @@ impl<T, N: Unsigned> KdTree<Vec<T>, N> {
         })
     }
 
-    pub fn from_points_by<Key: Ord, F>(points: Vec<T>, f: F) -> Self
+    pub fn construct_by_ordered_float<Key: Ord, F>(points: Vec<T>) -> Self
     where
         T: KdPoint<Dim = N>,
-        F: Fn(T::Scalar) -> Key,
+        T::Scalar: num_traits::Float,
     {
-        Self::construct_by_key(points, |item, k| f(item.at(k)))
+        Self::construct_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
 
-    pub fn from_points(points: Vec<T>) -> Self
+    pub fn construct(points: Vec<T>) -> Self
     where
         T: KdPoint<Dim = N>,
         T::Scalar: Ord,

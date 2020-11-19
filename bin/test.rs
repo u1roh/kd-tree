@@ -24,7 +24,7 @@ fn main() {
         println!("kd_nearest: elapsed {:?}", now.elapsed());
     }
     {
-        let kdtree = kd_tree::KdTree3::sort_points_by(&mut points, OrderedFloat);
+        let kdtree = kd_tree::KdTree3::sort_by_ordered_float(&mut points);
         let now = std::time::Instant::now();
         for p in kdtree.items() {
             let nearest = kdtree.nearest(p);

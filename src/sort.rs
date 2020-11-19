@@ -8,6 +8,15 @@ where
     kd_sort_by_key(points, P::dim(), |item, k| item.at(k))
 }
 
+pub fn kd_sort_by_ordered_float<P: KdPoint>(points: &mut [P])
+where
+    P::Scalar: num_traits::Float,
+{
+    kd_sort_by_key(points, P::dim(), |item, k| {
+        ordered_float::OrderedFloat(item.at(k))
+    })
+}
+
 pub fn kd_sort_by_key<T, Key: Ord>(
     items: &mut [T],
     dim: usize,
