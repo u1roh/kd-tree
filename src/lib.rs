@@ -1,5 +1,7 @@
-pub mod array;
-pub mod kd;
+mod nearest;
+mod sort;
+pub use nearest::*;
+pub use sort::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
@@ -27,12 +29,6 @@ impl<T> KdCollection for Vec<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct Nearest<'a, T, Scalar> {
-    pub item: &'a T,
-    pub distance: Scalar,
-}
-
 pub struct KdTree<Collection, N>(Collection, PhantomData<N>);
 pub type KdTree2<Collection> = KdTree<Collection, typenum::U2>;
 pub type KdTree3<Collection> = KdTree<Collection, typenum::U3>;
@@ -48,14 +44,14 @@ impl<C: KdCollection, N> KdTree<C, N> {
     where
         C::Item: Point,
     {
-        kd::kd_nearest(self.items(), query)
+        kd_nearest(self.items(), query)
     }
     pub fn nearest_by<Q: Point>(
         &self,
         query: &Q,
         coord: impl Fn(&C::Item, usize) -> Q::Scalar + Copy,
     ) -> Nearest<C::Item, Q::Scalar> {
-        kd::kd_nearest_by(self.items(), query, coord)
+        kd_nearest_by(self.items(), query, coord)
     }
 }
 impl<'a, T, N: typenum::Unsigned + typenum::NonZero> KdTree<&'a [T], N> {
@@ -81,7 +77,7 @@ impl<'a, T, N: typenum::Unsigned + typenum::NonZero> KdTree<&'a [T], N> {
         })
     }
     pub fn sort_by(items: &'a mut [T], compare: impl Fn(&T, &T, usize) -> Ordering + Copy) -> Self {
-        kd::kd_sort_by(items, N::to_usize(), compare);
+        kd_sort_by(items, N::to_usize(), compare);
         Self(items, PhantomData)
     }
 }
