@@ -5,10 +5,12 @@ pub use sort::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-pub trait Point {
+pub trait KdPoint {
     type Scalar: num_traits::NumAssign + Copy + PartialOrd;
     type Dim: typenum::Unsigned + typenum::NonZero;
-    const DIM: usize;
+    fn dim() -> usize {
+        <Self::Dim as typenum::Unsigned>::to_usize()
+    }
     fn at(&self, i: usize) -> Self::Scalar;
 }
 
@@ -39,14 +41,14 @@ impl<C: KdCollection, N> KdTree<C, N> {
     }
     pub fn nearest(
         &self,
-        query: &impl Point<Scalar = <C::Item as Point>::Scalar, Dim = <C::Item as Point>::Dim>,
-    ) -> Nearest<C::Item, <C::Item as Point>::Scalar>
+        query: &impl KdPoint<Scalar = <C::Item as KdPoint>::Scalar, Dim = <C::Item as KdPoint>::Dim>,
+    ) -> Nearest<C::Item, <C::Item as KdPoint>::Scalar>
     where
-        C::Item: Point,
+        C::Item: KdPoint,
     {
         kd_nearest(self.items(), query)
     }
-    pub fn nearest_by<Q: Point>(
+    pub fn nearest_by<Q: KdPoint>(
         &self,
         query: &Q,
         coord: impl Fn(&C::Item, usize) -> Q::Scalar + Copy,
@@ -57,14 +59,14 @@ impl<C: KdCollection, N> KdTree<C, N> {
 impl<'a, T, N: typenum::Unsigned + typenum::NonZero> KdTree<&'a [T], N> {
     pub fn sort_points(points: &'a mut [T]) -> Self
     where
-        T: Point<Dim = N>,
+        T: KdPoint<Dim = N>,
         T::Scalar: Ord,
     {
         Self::sort_by_key(points, |item, k| item.at(k))
     }
     pub fn sort_points_by<Key: Ord>(points: &'a mut [T], f: impl Fn(T::Scalar) -> Key) -> Self
     where
-        T: Point<Dim = N>,
+        T: KdPoint<Dim = N>,
     {
         Self::sort_by_key(points, |item, k| f(item.at(k)))
     }
@@ -86,10 +88,9 @@ macro_rules! impl_points {
     ($($len:literal),*) => {
         $(
             paste::paste!{
-                impl<T: num_traits::NumAssign + Copy + PartialOrd> Point for [T; $len] {
+                impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint for [T; $len] {
                     type Scalar = T;
                     type Dim = typenum::[<U $len>];
-                    const DIM: usize = $len;
                     fn at(&self, i: usize) -> T { self[i] }
                 }
             }

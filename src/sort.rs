@@ -1,11 +1,11 @@
-use crate::Point;
+use crate::KdPoint;
 use std::cmp::Ordering;
 
-pub fn kd_sort<P: Point>(points: &mut [P])
+pub fn kd_sort<P: KdPoint>(points: &mut [P])
 where
     P::Scalar: Ord,
 {
-    kd_sort_by_key(points, P::DIM, |item, k| item.at(k))
+    kd_sort_by_key(points, P::dim(), |item, k| item.at(k))
 }
 
 pub fn kd_sort_by_key<T, Key: Ord>(

@@ -1,9 +1,44 @@
+use super::Nearest;
 use crate::KdPoint;
+use std::cmp::Ordering;
 
-#[derive(Debug)]
-pub struct Nearest<'a, T, Scalar> {
-    pub item: &'a T,
-    pub distance: Scalar,
+pub fn kd_sort<P: KdPoint>(points: &mut [P])
+where
+    P::Scalar: Ord,
+{
+    kd_sort_by_key(points, P::DIM, |item, k| item.at(k))
+}
+
+pub fn kd_sort_by_key<T, Key: Ord>(
+    items: &mut [T],
+    dim: usize,
+    kd_key: impl Fn(&T, usize) -> Key + Copy,
+) {
+    kd_sort_by(items, dim, |item1, item2, k| {
+        kd_key(item1, k).cmp(&kd_key(item2, k))
+    })
+}
+
+pub fn kd_sort_by<T>(
+    items: &mut [T],
+    dim: usize,
+    kd_compare: impl Fn(&T, &T, usize) -> Ordering + Copy,
+) {
+    fn recurse<T>(
+        items: &mut [T],
+        axis: usize,
+        dim: usize,
+        kd_compare: impl Fn(&T, &T, usize) -> Ordering + Copy,
+    ) {
+        if items.len() >= 2 {
+            pdqselect::select_by(items, items.len() / 2, |x, y| kd_compare(x, y, axis));
+            let mid = items.len() / 2;
+            let axis = (axis + 1) % dim;
+            recurse(&mut items[..mid], axis, dim, kd_compare);
+            recurse(&mut items[mid + 1..], axis, dim, kd_compare);
+        }
+    }
+    recurse(items, 0, dim, kd_compare);
 }
 
 pub fn kd_nearest<'a, T: KdPoint>(
@@ -24,7 +59,7 @@ pub fn kd_nearest_by<'a, T, P: KdPoint>(
         get: impl Fn(&T, usize) -> P::Scalar,
     ) -> P::Scalar {
         let mut distance = <P::Scalar as num_traits::Zero>::zero();
-        for i in 0..P::dim() {
+        for i in 0..P::DIM {
             let diff = p1.at(i) - get(p2, i);
             distance += diff * diff;
         }
@@ -55,12 +90,12 @@ pub fn kd_nearest_by<'a, T, P: KdPoint>(
             [&kdtree[mid_idx + 1..], &kdtree[..mid_idx]]
         };
         if !branch1.is_empty() {
-            recurse(nearest, branch1, get, query, (axis + 1) % Q::dim());
+            recurse(nearest, branch1, get, query, (axis + 1) % Q::DIM);
         }
         if !branch2.is_empty() {
             let diff = query.at(axis) - mid_pos;
             if diff * diff < nearest.distance {
-                recurse(nearest, branch2, get, query, (axis + 1) % Q::dim());
+                recurse(nearest, branch2, get, query, (axis + 1) % Q::DIM);
             }
         }
     }
