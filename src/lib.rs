@@ -323,12 +323,6 @@ pub struct KdIndexTree<'a, T, N: Unsigned> {
     source: &'a [T],
     kdtree: KdTreeBuf<usize, N>,
 }
-impl<'a, T, N: Unsigned> std::ops::Deref for KdIndexTree<'a, T, N> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        self.source
-    }
-}
 impl<'a, T, N: Unsigned> KdIndexTree<'a, T, N> {
     pub fn source(&self) -> &'a [T] {
         self.source
