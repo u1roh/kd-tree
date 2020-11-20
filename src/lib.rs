@@ -318,6 +318,85 @@ impl<T, N: Unsigned> KdTreeBuf<T, N> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KdIndexTree<'a, T, N: Unsigned> {
+    source: &'a [T],
+    kdtree: KdTreeBuf<usize, N>,
+}
+impl<'a, T, N: Unsigned> std::ops::Deref for KdIndexTree<'a, T, N> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.source
+    }
+}
+impl<'a, T, N: Unsigned> KdIndexTree<'a, T, N> {
+    pub fn items(&self) -> &'a [T] {
+        self.source
+    }
+
+    pub fn indices(&self) -> &KdTree<usize, N> {
+        &self.kdtree
+    }
+
+    pub fn build_by<F>(source: &'a [T], compare: F) -> Self
+    where
+        F: Fn(&T, &T, usize) -> Ordering + Copy,
+    {
+        Self {
+            source,
+            kdtree: KdTreeBuf::build_by((0..source.len()).collect(), |i1, i2, k| {
+                compare(&source[*i1], &source[*i2], k)
+            }),
+        }
+    }
+
+    pub fn build_by_key<Key, F>(source: &'a [T], kd_key: F) -> Self
+    where
+        Key: Ord,
+        F: Fn(&T, usize) -> Key + Copy,
+    {
+        Self::build_by(source, |item1, item2, k| {
+            kd_key(item1, k).cmp(&kd_key(item2, k))
+        })
+    }
+
+    pub fn build_by_ordered_float(points: &'a [T]) -> Self
+    where
+        T: KdPoint<Dim = N>,
+        T::Scalar: num_traits::Float,
+    {
+        Self::build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
+    }
+
+    pub fn build(points: &'a [T]) -> Self
+    where
+        T: KdPoint<Dim = N>,
+        T::Scalar: Ord,
+    {
+        Self::build_by_key(points, |item, k| item.at(k))
+    }
+
+    pub fn nearest_by<Q: KdPoint>(
+        &self,
+        query: &Q,
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> ItemAndDistance<usize, Q::Scalar> {
+        self.kdtree
+            .nearest_by(query, |&index, k| coord(&self.source[index], k))
+    }
+
+    pub fn nearest(
+        &self,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+    ) -> ItemAndDistance<usize, T::Scalar>
+    where
+        T: KdPoint,
+    {
+        self.kdtree
+            .nearest_by(query, |&index, k| self.source[index].at(k))
+    }
+}
+
 macro_rules! define_kdtree_aliases {
     ($($dim:literal),*) => {
         $(
