@@ -330,12 +330,16 @@ impl<'a, T, N: Unsigned> std::ops::Deref for KdIndexTree<'a, T, N> {
     }
 }
 impl<'a, T, N: Unsigned> KdIndexTree<'a, T, N> {
-    pub fn items(&self) -> &'a [T] {
+    pub fn source(&self) -> &'a [T] {
         self.source
     }
 
     pub fn indices(&self) -> &KdTree<usize, N> {
         &self.kdtree
+    }
+
+    pub fn item(&self, i: usize) -> &'a T {
+        &self.source[i]
     }
 
     pub fn build_by<F>(source: &'a [T], compare: F) -> Self
@@ -385,6 +389,12 @@ impl<'a, T, N: Unsigned> KdIndexTree<'a, T, N> {
             .nearest_by(query, |&index, k| coord(&self.source[index], k))
     }
 
+    /// # Example
+    /// ```
+    /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
+    /// let kdtree = kd_tree::KdIndexTree3::build(&items);
+    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1);
+    /// ```
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
@@ -403,6 +413,7 @@ macro_rules! define_kdtree_aliases {
             paste::paste! {
                 pub type [<KdTree $dim>]<T> = KdTree<T, typenum::[<U $dim>]>;
                 pub type [<KdTreeBuf $dim>]<T> = KdTreeBuf<T, typenum::[<U $dim>]>;
+                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTree<'a, T, typenum::[<U $dim>]>;
             }
         )*
     };
