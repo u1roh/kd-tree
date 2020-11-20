@@ -1,30 +1,14 @@
-use ordered_float::OrderedFloat;
-
 fn main() {
-    let mut points = gen_points(1000000);
-    {
+    let kdtree = {
         let now = std::time::Instant::now();
-        kd_tree::kd_sort_by_key(&mut points, 3, |p, k| OrderedFloat(p[k]));
-        println!("kd_sort_by_key: elapsed {:?}", now.elapsed());
-    }
+        let kdtree = kd_tree::KdTreeBuf3::build_by_ordered_float(gen_points(1000000));
+        println!(
+            "KdTreeBuf3::build_by_ordered_float(): elapsed {:?}",
+            now.elapsed()
+        );
+        kdtree
+    };
     {
-        let now = std::time::Instant::now();
-        for p in &points {
-            let nearest = kd_tree::kd_nearest_by(&points, p, |p, k| p[k]);
-            assert_eq!(nearest.item, p);
-        }
-        println!("kd_nearest_by: elapsed {:?}", now.elapsed());
-    }
-    {
-        let now = std::time::Instant::now();
-        for p in &points {
-            let nearest = kd_tree::kd_nearest(&points, p);
-            assert_eq!(nearest.item, p);
-        }
-        println!("kd_nearest: elapsed {:?}", now.elapsed());
-    }
-    {
-        let kdtree = kd_tree::KdTree3::sort_by_ordered_float(&mut points);
         let now = std::time::Instant::now();
         for p in kdtree.items() {
             let nearest = kdtree.nearest(p);
@@ -34,8 +18,8 @@ fn main() {
     }
     {
         let now = std::time::Instant::now();
-        for q in &points {
-            let nearest = kd_tree::kd_nearest_with(&points, 3, |p, k| q[k] - p[k]);
+        for q in kdtree.items() {
+            let nearest = kdtree.nearest_with(|p, k| q[k] - p[k]);
             assert_eq!(nearest.item, q);
         }
         println!("kd_nearest_with: elapsed {:?}", now.elapsed());

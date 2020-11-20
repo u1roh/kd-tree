@@ -1,6 +1,7 @@
 use crate::KdPoint;
 use std::cmp::Ordering;
 
+#[allow(dead_code)]
 pub fn kd_sort<P: KdPoint>(points: &mut [P])
 where
     P::Scalar: Ord,
@@ -8,6 +9,7 @@ where
     kd_sort_by_key(points, P::dim(), |item, k| item.at(k))
 }
 
+#[allow(dead_code)]
 pub fn kd_sort_by_ordered_float<P: KdPoint>(points: &mut [P])
 where
     P::Scalar: num_traits::Float,
@@ -17,6 +19,7 @@ where
     })
 }
 
+#[allow(dead_code)]
 pub fn kd_sort_by_key<T, Key: Ord>(
     items: &mut [T],
     dim: usize,
