@@ -16,14 +16,14 @@ fn main() {
         }
         println!("KdTree::nearest: elapsed {:?}", now.elapsed());
     }
-    {
+    /*{
         let now = std::time::Instant::now();
         for q in kdtree.items() {
             let nearest = kdtree.nearest_with(|p, k| q[k] - p[k]);
             assert_eq!(nearest.item, q);
         }
         println!("kd_nearest_with: elapsed {:?}", now.elapsed());
-    }
+    }*/
 }
 
 fn gen_points(count: usize) -> Vec<[f64; 3]> {

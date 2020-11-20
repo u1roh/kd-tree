@@ -46,6 +46,12 @@ pub trait KdPoint {
     fn at(&self, i: usize) -> Self::Scalar;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ItemAndDistance<'a, T, Scalar> {
+    pub item: &'a T,
+    pub squared_distance: Scalar,
+}
+
 /// A slice of kd-tree.
 /// This is an unsized type, meaning that it must always be used as a reference. For an owned version of this type, see [`KdTreeBuf`].
 #[derive(Debug, PartialEq, Eq)]
@@ -164,7 +170,7 @@ impl<T, N: Unsigned> KdTree<T, N> {
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> Nearest<T, Q::Scalar> {
+    ) -> ItemAndDistance<T, Q::Scalar> {
         kd_nearest_by(self.items(), query, coord)
     }
 
@@ -177,13 +183,14 @@ impl<T, N: Unsigned> KdTree<T, N> {
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
-    ) -> Nearest<T, T::Scalar>
+    ) -> ItemAndDistance<T, T::Scalar>
     where
         T: KdPoint,
     {
         kd_nearest(self.items(), query)
     }
 
+    /*
     /// # Example
     /// ```
     /// let kdtree = kd_tree::KdTreeBuf3::build(vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]]);
@@ -193,12 +200,13 @@ impl<T, N: Unsigned> KdTree<T, N> {
     pub fn nearest_with<Scalar>(
         &self,
         kd_difference: impl Fn(&T, usize) -> Scalar + Copy,
-    ) -> Nearest<T, Scalar>
+    ) -> ItemAndDistance<T, Scalar>
     where
         Scalar: num_traits::NumAssign + Copy + PartialOrd,
     {
         kd_nearest_with(self.items(), N::to_usize(), kd_difference)
     }
+    */
 }
 
 /// An owned kd-tree.
