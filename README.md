@@ -53,8 +53,8 @@ let kdtree = kd_tree::KdTree::build(items);
 assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
 ```
 
-`KdPoint` trait is also implemented for tuple of `KdPoint` and arbitrary type, like `(P, T)` where `P: KdPoint`.
-And a type alias named `KdMap<P, T>` is defined as `KdTree<P, <P as KdPoint>::Dim>`.
+`KdPoint` trait is also implemented for tuple of a `KdPoint` and an arbitrary type, like `(P, T)` where `P: KdPoint`.
+And a type alias named `KdMap<P, T>` is defined as `KdTree<(P, T)>`.
 So you can build a kd-tree from key-value pairs, as below:
 ```rust
 let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec![
