@@ -1,7 +1,7 @@
 fn main() {
     let kdtree = {
         let now = std::time::Instant::now();
-        let kdtree = kd_tree::KdTreeBuf3::build_by_ordered_float(gen_points(1000000));
+        let kdtree = kd_tree::KdTree::build_by_ordered_float(gen_points(1000000));
         println!(
             "KdTreeBuf3::build_by_ordered_float(): elapsed {:?}",
             now.elapsed()
@@ -14,7 +14,7 @@ fn main() {
             let nearest = kdtree.nearest(p);
             assert_eq!(nearest.item, p);
         }
-        println!("KdTree::nearest: elapsed {:?}", now.elapsed());
+        println!("KdSlice::nearest: elapsed {:?}", now.elapsed());
     }
     /*{
         let now = std::time::Instant::now();
