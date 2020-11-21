@@ -30,7 +30,7 @@ use typenum::Unsigned;
 ///     type Dim = typenum::U3;
 ///     fn at(&self, k: usize) -> f64 { self.point[k] }
 /// }
-/// let kdtree = kd_tree::KdTree::build_by_ordered_float(vec![
+/// let kdtree: kd_tree::KdTree<MyItem> = kd_tree::KdTree::build_by_ordered_float(vec![
 ///     MyItem { point: [1.0, 2.0, 3.0], id: 111 },
 ///     MyItem { point: [3.0, 1.0, 2.0], id: 222 },
 ///     MyItem { point: [2.0, 3.0, 1.0], id: 333 },
@@ -57,20 +57,21 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 /// This is an unsized type, meaning that it must always be used as a reference.
 /// For an owned version of this type, see [`KdTree`].
 #[derive(Debug, PartialEq, Eq)]
-pub struct KdSlice<T, N: Unsigned>(PhantomData<N>, [T]);
-impl<T, N: Unsigned> std::ops::Deref for KdSlice<T, N> {
+pub struct KdSliceN<T, N: Unsigned>(PhantomData<N>, [T]);
+pub type KdSlice<T> = KdSliceN<T, <T as KdPoint>::Dim>;
+impl<T, N: Unsigned> std::ops::Deref for KdSliceN<T, N> {
     type Target = [T];
     fn deref(&self) -> &[T] {
         &self.1
     }
 }
-impl<T: Clone, N: Unsigned> std::borrow::ToOwned for KdSlice<T, N> {
-    type Owned = KdTree<T, N>;
+impl<T: Clone, N: Unsigned> std::borrow::ToOwned for KdSliceN<T, N> {
+    type Owned = KdTreeN<T, N>;
     fn to_owned(&self) -> Self::Owned {
-        KdTree(PhantomData, self.1.to_vec())
+        KdTreeN(PhantomData, self.1.to_vec())
     }
 }
-impl<T, N: Unsigned> KdSlice<T, N> {
+impl<T, N: Unsigned> KdSliceN<T, N> {
     pub fn items(&self) -> &[T] {
         &self.1
     }
@@ -127,8 +128,9 @@ impl<T, N: Unsigned> KdSlice<T, N> {
 
     /// # Example
     /// ```
+    /// use kd_tree::KdSlice;
     /// let mut items: Vec<[f64; 3]> = vec![[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0]];
-    /// let kdtree = kd_tree::KdSlice::sort_by_ordered_float(&mut items);
+    /// let kdtree: &KdSlice<[f64; 3]> = KdSlice::sort_by_ordered_float(&mut items);
     /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).item, &[3.0, 1.0, 2.0]);
     /// ```
     pub fn sort_by_ordered_float(points: &mut [T]) -> &Self
@@ -141,8 +143,9 @@ impl<T, N: Unsigned> KdSlice<T, N> {
 
     /// # Example
     /// ```
+    /// use kd_tree::KdSlice;
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
-    /// let kdtree = kd_tree::KdSlice::sort(&mut items);
+    /// let kdtree: &KdSlice<[i32; 3]> = KdSlice::sort(&mut items);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
     /// ```
     pub fn sort(points: &mut [T]) -> &Self
@@ -218,29 +221,30 @@ impl<T, N: Unsigned> KdSlice<T, N> {
 /// An owned kd-tree.
 /// This type implements [`std::ops::Deref`] to [`KdSlice`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct KdTree<T, N: Unsigned>(PhantomData<N>, Vec<T>);
-impl<T, N: Unsigned> std::ops::Deref for KdTree<T, N> {
-    type Target = KdSlice<T, N>;
+pub struct KdTreeN<T, N: Unsigned>(PhantomData<N>, Vec<T>);
+pub type KdTree<T> = KdTreeN<T, <T as KdPoint>::Dim>;
+impl<T, N: Unsigned> std::ops::Deref for KdTreeN<T, N> {
+    type Target = KdSliceN<T, N>;
     fn deref(&self) -> &Self::Target {
-        unsafe { KdSlice::new_unchecked(&self.1) }
+        unsafe { KdSliceN::new_unchecked(&self.1) }
     }
 }
-impl<T, N: Unsigned> AsRef<KdSlice<T, N>> for KdTree<T, N> {
-    fn as_ref(&self) -> &KdSlice<T, N> {
+impl<T, N: Unsigned> AsRef<KdSliceN<T, N>> for KdTreeN<T, N> {
+    fn as_ref(&self) -> &KdSliceN<T, N> {
         self
     }
 }
-impl<T, N: Unsigned> std::borrow::Borrow<KdSlice<T, N>> for KdTree<T, N> {
-    fn borrow(&self) -> &KdSlice<T, N> {
+impl<T, N: Unsigned> std::borrow::Borrow<KdSliceN<T, N>> for KdTreeN<T, N> {
+    fn borrow(&self) -> &KdSliceN<T, N> {
         self
     }
 }
-impl<T, N: Unsigned> Into<Vec<T>> for KdTree<T, N> {
+impl<T, N: Unsigned> Into<Vec<T>> for KdTreeN<T, N> {
     fn into(self) -> Vec<T> {
         self.1
     }
 }
-impl<T, N: Unsigned> KdTree<T, N> {
+impl<T, N: Unsigned> KdTreeN<T, N> {
     pub fn into_vec(self) -> Vec<T> {
         self.1
     }
@@ -297,7 +301,8 @@ impl<T, N: Unsigned> KdTree<T, N> {
 
     /// # Example
     /// ```
-    /// let kdtree = kd_tree::KdTree::build_by_ordered_float(vec![
+    /// use kd_tree::KdTree;
+    /// let kdtree: KdTree<[f64; 3]> = KdTree::build_by_ordered_float(vec![
     ///     [1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0]
     /// ]);
     /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).item, &[3.0, 1.0, 2.0]);
@@ -312,7 +317,8 @@ impl<T, N: Unsigned> KdTree<T, N> {
 
     /// # Example
     /// ```
-    /// let kdtree = kd_tree::KdTree::build(vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]]);
+    /// use kd_tree::KdTree;
+    /// let kdtree: KdTree<[i32; 3]> = KdTree::build(vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]]);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
     /// ```
     pub fn build(points: Vec<T>) -> Self
@@ -332,16 +338,17 @@ impl<T, N: Unsigned> KdTree<T, N> {
 /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1); // nearest() returns an index of items.
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KdIndexTree<'a, T, N: Unsigned> {
+pub struct KdIndexTreeN<'a, T, N: Unsigned> {
     source: &'a [T],
-    kdtree: KdTree<usize, N>,
+    kdtree: KdTreeN<usize, N>,
 }
-impl<'a, T, N: Unsigned> KdIndexTree<'a, T, N> {
+pub type KdIndexTree<'a, T> = KdIndexTreeN<'a, T, <T as KdPoint>::Dim>;
+impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     pub fn source(&self) -> &'a [T] {
         self.source
     }
 
-    pub fn indices(&self) -> &KdSlice<usize, N> {
+    pub fn indices(&self) -> &KdSliceN<usize, N> {
         &self.kdtree
     }
 
@@ -355,7 +362,7 @@ impl<'a, T, N: Unsigned> KdIndexTree<'a, T, N> {
     {
         Self {
             source,
-            kdtree: KdTree::build_by((0..source.len()).collect(), |i1, i2, k| {
+            kdtree: KdTreeN::build_by((0..source.len()).collect(), |i1, i2, k| {
                 compare(&source[*i1], &source[*i2], k)
             }),
         }
@@ -418,14 +425,14 @@ macro_rules! define_kdtree_aliases {
     ($($dim:literal),*) => {
         $(
             paste::paste! {
-                pub type [<KdSlice $dim>]<T> = KdSlice<T, typenum::[<U $dim>]>;
-                pub type [<KdTree $dim>]<T> = KdTree<T, typenum::[<U $dim>]>;
-                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTree<'a, T, typenum::[<U $dim>]>;
+                pub type [<KdSlice $dim>]<T> = KdSliceN<T, typenum::[<U $dim>]>;
+                pub type [<KdTree $dim>]<T> = KdTreeN<T, typenum::[<U $dim>]>;
+                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTreeN<'a, T, typenum::[<U $dim>]>;
             }
         )*
     };
 }
-define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8);
 
 macro_rules! impl_kd_points {
     ($($len:literal),*) => {
@@ -459,7 +466,7 @@ impl<P: KdPoint, T> KdPoint for (P, T) {
 /// ]);
 /// assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
 /// ```
-pub type KdMap<P, T> = KdTree<(P, T), <P as KdPoint>::Dim>;
+pub type KdMap<P, T> = KdTree<(P, T)>;
 
 /// kd-tree slice of key-value pairs.
 /// ```
@@ -471,4 +478,4 @@ pub type KdMap<P, T> = KdTree<(P, T), <P as KdPoint>::Dim>;
 /// let kdmap = kd_tree::KdMapSlice::sort(&mut items);
 /// assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
 /// ```
-pub type KdMapSlice<P, T> = KdSlice<(P, T), <P as KdPoint>::Dim>;
+pub type KdMapSlice<P, T> = KdSlice<(P, T)>;

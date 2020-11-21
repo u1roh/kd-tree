@@ -15,6 +15,8 @@ You can live with or without `KdPoint`.
 ### With `KdPoint` explicitly
 
 ```rust
+use kd_tree::{KdPoint, KdTree};
+
 // define your own item type.
 struct Item {
     point: [f64; 2],
@@ -22,7 +24,7 @@ struct Item {
 }
 
 // implement `KdPoint` for your item type.
-impl kd_tree::KdPoint for Item {
+impl KdPoint for Item {
     type Scalar = f64;
     type Dim = typenum::U2; // 2 dimensional tree.
     fn at(&self, k: usize) -> f64 { self.point[k] }
@@ -30,7 +32,7 @@ impl kd_tree::KdPoint for Item {
 
 // construct kd-tree from `Vec<Item>`.
 // Note: you need to use `build_by_ordered_float()` because f64 doesn't implement `Ord` trait.
-let kdtree = kd_tree::KdTree::build_by_ordered_float(vec![
+let kdtree: KdTree<Item> = KdTree::build_by_ordered_float(vec![
     Item { point: [1.0, 2.0], id: 111 },
     Item { point: [2.0, 3.0], id: 222 },
     Item { point: [3.0, 4.0], id: 333 },
@@ -78,15 +80,15 @@ assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &&"c");
 
 ## To own, or not to own
 
-`KdSlice<T, N>` and `KdTree<T, N>` are similar to `str` and `String`, or `Path` and `PathBuf`.
+`KdSliceN<T, N>` and `KdTreeN<T, N>` are similar to `str` and `String`, or `Path` and `PathBuf`.
 
-- `KdSlice<T, N>` doesn't own its buffer, but `KdTree<T, N>`.
-- `KdSlice<T, N>` is not `Sized`, so it must be dealed in reference mannar.
-- `KdSlice<T, N>` implements `Deref` to `[T]`.
-- `KdTree<T, N>` implements `Deref` to `KdSlice<T, N>`.
-- Unlike `PathBuf` or `String`, which are mutable, `KdTree<T, N>` is immutable.
+- `KdSliceN<T, N>` doesn't own its buffer, but `KdTreeN<T, N>`.
+- `KdSliceN<T, N>` is not `Sized`, so it must be dealed in reference mannar.
+- `KdSliceN<T, N>` implements `Deref` to `[T]`.
+- `KdTreeN<T, N>` implements `Deref` to `KdSliceN<T, N>`.
+- Unlike `PathBuf` or `String`, which are mutable, `KdTreeN<T, N>` is immutable.
 
-`&KdSlice<T, N>` can be constructed directly, not via `KdTree`, as below:
+`&KdSliceN<T, N>` can be constructed directly, not via `KdTreeN`, as below:
 
 ```rust
 let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
@@ -94,8 +96,8 @@ let kdtree = kd_tree::KdSlice::sort(&mut items);
 assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
 ```
 
-## `KdIndexTree`
-A `KdIndexTree` refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTree<usize, N>`.
+## `KdIndexTreeN`
+A `KdIndexTreeN` refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTreeN<usize, N>`.
 Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
 ```rust
 let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
