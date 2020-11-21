@@ -39,7 +39,7 @@ let kdtree: KdTree<Item> = KdTree::build_by_ordered_float(vec![
 ]);
 
 // search nearest item from [1.9, 3.1]
-assert_eq!(kdtree.nearest(&[1.9, 3.1]).item.id, 222);
+assert_eq!(kdtree.nearest(&[1.9, 3.1]).unwrap().item.id, 222);
 ```
 
 ### With `KdPoint` implicitly
@@ -50,7 +50,7 @@ So you can build kd-trees of those types without custom implementation of `KdPoi
 ```rust
 let items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdTree::build(items);
-assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
+assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
 ```
 
 `KdPoint` trait is also implemented for tuple of a `KdPoint` and an arbitrary type, like `(P, T)` where `P: KdPoint`.
@@ -62,7 +62,7 @@ let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec!
     ([2, 3, 1], "bar"),
     ([3, 1, 2], "buzz"),
 ]);
-assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
+assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 ```
 
 ### Without `KdPoint`
@@ -75,7 +75,7 @@ let items: HashMap<&'static str, [i32; 2]> = vec![
     ("c", [20, 20]),
 ].into_iter().collect();
 let kdtree = kd_tree::KdTree2::build_by_key(items.keys().collect(), |key, k| items[*key][k]);
-assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &&"c");
+assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).unwrap().item, &&"c");
 ```
 
 ## To own, or not to own
@@ -93,7 +93,7 @@ assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &&"c");
 ```rust
 let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdSlice::sort(&mut items);
-assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
+assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
 ```
 
 ## `KdIndexTreeN`
@@ -102,5 +102,5 @@ Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
 ```rust
 let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdIndexTree::build(&items);
-assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1); // nearest() returns an index of items.
+assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1); // nearest() returns an index of items.
 ```

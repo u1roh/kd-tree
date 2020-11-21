@@ -56,14 +56,20 @@ fn criterion_benchmark(c: &mut Criterion) {
         let kdtree = KdTree::build_by_ordered_float(gen_points3d(NUM_NEAREST));
         b.iter(|| {
             let i = rng.gen::<usize>() % kdtree.len();
-            assert_eq!(kdtree.nearest(&kdtree[i]).item.coord, kdtree[i].coord);
+            assert_eq!(
+                kdtree.nearest(&kdtree[i]).unwrap().item.coord,
+                kdtree[i].coord
+            );
         });
     });
     c.bench_function("nearest by KdTree<[i32; 3]>", |b| {
         let kdtree = KdTree::build(gen_points3i(NUM_NEAREST));
         b.iter(|| {
             let i = rng.gen::<usize>() % kdtree.len();
-            assert_eq!(kdtree.nearest(&kdtree[i]).item.coord, kdtree[i].coord);
+            assert_eq!(
+                kdtree.nearest(&kdtree[i]).unwrap().item.coord,
+                kdtree[i].coord
+            );
         });
     });
 }

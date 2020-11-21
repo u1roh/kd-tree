@@ -7,7 +7,7 @@
 //!     [3.0, 1.0, 2.0],
 //!     [2.0, 3.0, 1.0],
 //! ]);
-//! assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).item, &[3.0, 1.0, 2.0]);
+//! assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
 //! ```
 mod nearest;
 mod sort;
@@ -35,7 +35,7 @@ use typenum::Unsigned;
 ///     MyItem { point: [3.0, 1.0, 2.0], id: 222 },
 ///     MyItem { point: [2.0, 3.0, 1.0], id: 333 },
 /// ]);
-/// assert_eq!(kdtree.nearest(&[3.1, 0.1, 2.2]).item.id, 222);
+/// assert_eq!(kdtree.nearest(&[3.1, 0.1, 2.2]).unwrap().item.id, 222);
 /// ```
 pub trait KdPoint {
     type Scalar: num_traits::NumAssign + Copy + PartialOrd;
@@ -92,7 +92,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     ///     Item { point: [2, 3, 1], id: 333 },
     /// ];
     /// let kdtree = kd_tree::KdSlice3::sort_by(&mut items, |item1, item2, k| item1.point[k].cmp(&item2.point[k]));
-    /// assert_eq!(kdtree.nearest_by(&[3, 1, 2], |item, k| item.point[k]).item.id, 222);
+    /// assert_eq!(kdtree.nearest_by(&[3, 1, 2], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
     pub fn sort_by<F>(items: &mut [T], compare: F) -> &Self
     where
@@ -115,7 +115,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// ];
     /// use ordered_float::OrderedFloat;
     /// let kdtree = kd_tree::KdSlice3::sort_by_key(&mut items, |item, k| OrderedFloat(item.point[k]));
-    /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).item.id, 222);
+    /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
     pub fn sort_by_key<Key: Ord, F>(items: &mut [T], kd_key: F) -> &Self
     where
@@ -131,7 +131,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// use kd_tree::KdSlice;
     /// let mut items: Vec<[f64; 3]> = vec![[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0]];
     /// let kdtree: &KdSlice<[f64; 3]> = KdSlice::sort_by_ordered_float(&mut items);
-    /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).item, &[3.0, 1.0, 2.0]);
+    /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
     /// ```
     pub fn sort_by_ordered_float(points: &mut [T]) -> &Self
     where
@@ -146,7 +146,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// use kd_tree::KdSlice;
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
     /// let kdtree: &KdSlice<[i32; 3]> = KdSlice::sort(&mut items);
-    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
+    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
     pub fn sort(points: &mut [T]) -> &Self
     where
@@ -156,6 +156,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         Self::sort_by_key(points, |item, k| item.at(k))
     }
 
+    /// Returns the nearest item from the input point. Returns `None` if `self.is_empty()`.
     /// # Example
     /// ```
     /// struct Item {
@@ -169,34 +170,41 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// ];
     /// use ordered_float::OrderedFloat;
     /// let kdtree = kd_tree::KdSlice3::sort_by_key(&mut items, |item, k| OrderedFloat(item.point[k]));
-    /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).item.id, 222);
+    /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
-    /// # Panics
-    /// Panics if `self.is_empty()`.
     pub fn nearest_by<Q: KdPoint>(
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> ItemAndDistance<T, Q::Scalar> {
-        kd_nearest_by(self.items(), query, coord)
+    ) -> Option<ItemAndDistance<T, Q::Scalar>> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(kd_nearest_by(self.items(), query, coord))
+        }
     }
 
+    /// Returns the nearest item from the input point. Returns `None` if `self.is_empty()`.
     /// # Example
     /// ```
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
     /// let kdtree = kd_tree::KdSlice::sort(&mut items);
-    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
+    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
     /// # Panics
     /// Panics if `self.is_empty()`.
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
-    ) -> ItemAndDistance<T, T::Scalar>
+    ) -> Option<ItemAndDistance<T, T::Scalar>>
     where
         T: KdPoint,
     {
-        kd_nearest(self.items(), query)
+        if self.is_empty() {
+            None
+        } else {
+            Some(kd_nearest(self.items(), query))
+        }
     }
 
     /*
@@ -263,7 +271,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     ///     ],
     ///     |item1, item2, k| item1.point[k].cmp(&item2.point[k])
     /// );
-    /// assert_eq!(kdtree.nearest_by(&[3, 1, 2], |item, k| item.point[k]).item.id, 222);
+    /// assert_eq!(kdtree.nearest_by(&[3, 1, 2], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
     pub fn build_by<F>(mut items: Vec<T>, compare: F) -> Self
     where
@@ -287,7 +295,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     ///     ],
     ///     |item, k| ordered_float::OrderedFloat(item.point[k])
     /// );
-    /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).item.id, 222);
+    /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
     pub fn build_by_key<Key, F>(items: Vec<T>, kd_key: F) -> Self
     where
@@ -305,7 +313,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     /// let kdtree: KdTree<[f64; 3]> = KdTree::build_by_ordered_float(vec![
     ///     [1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0]
     /// ]);
-    /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).item, &[3.0, 1.0, 2.0]);
+    /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
     /// ```
     pub fn build_by_ordered_float(points: Vec<T>) -> Self
     where
@@ -319,7 +327,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     /// ```
     /// use kd_tree::KdTree;
     /// let kdtree: KdTree<[i32; 3]> = KdTree::build(vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]]);
-    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
+    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
     pub fn build(points: Vec<T>) -> Self
     where
@@ -335,7 +343,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
 /// ```
 /// let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 /// let kdtree = kd_tree::KdIndexTree::build(&items);
-/// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1); // nearest() returns an index of items.
+/// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1); // nearest() returns an index of items.
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KdIndexTreeN<'a, T, N: Unsigned> {
@@ -398,7 +406,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> ItemAndDistance<usize, Q::Scalar> {
+    ) -> Option<ItemAndDistance<usize, Q::Scalar>> {
         self.kdtree
             .nearest_by(query, |&index, k| coord(&self.source[index], k))
     }
@@ -407,12 +415,12 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     /// ```
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
     /// let kdtree = kd_tree::KdIndexTree3::build(&items);
-    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1);
+    /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1);
     /// ```
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
-    ) -> ItemAndDistance<usize, T::Scalar>
+    ) -> Option<ItemAndDistance<usize, T::Scalar>>
     where
         T: KdPoint,
     {
@@ -464,7 +472,7 @@ impl<P: KdPoint, T> KdPoint for (P, T) {
 ///     ([2, 3, 1], "bar"),
 ///     ([3, 1, 2], "buzz"),
 /// ]);
-/// assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
+/// assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 /// ```
 pub type KdMap<P, T> = KdTree<(P, T)>;
 
@@ -476,6 +484,6 @@ pub type KdMap<P, T> = KdTree<(P, T)>;
 ///     ([3, 1, 2], "buzz"),
 /// ];
 /// let kdmap = kd_tree::KdMapSlice::sort(&mut items);
-/// assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
+/// assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 /// ```
 pub type KdMapSlice<P, T> = KdSlice<(P, T)>;
