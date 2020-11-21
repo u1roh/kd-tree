@@ -339,7 +339,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
 }
 
 /// This type refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTree<usize, N>`.
-/// Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
+/// Unlike [`KdSliceN::sort`], [`KdIndexTreeN::build`] doesn't sort input items.
 /// ```
 /// let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 /// let kdtree = kd_tree::KdIndexTree::build(&items);
