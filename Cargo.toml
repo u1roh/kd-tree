@@ -11,9 +11,18 @@ name = "test"
 path = "bin/test.rs"
 
 [dependencies]
-rand = "*"
-num-traits = "*"
-ordered-float = "*"
-pdqselect = "*"
+num-traits = "0.2.14"
+ordered-float = "2.0.0"
+pdqselect = "0.1.0"
 typenum = "1.12"
 paste = "1.0"
+
+[dev-dependencies]
+rand = "*"
+criterion = "0.3"
+fux_kdtree = { version = "0.2.0", package = "fux_kdtree" } 
+kdtree = "0.6.0"
+
+[[bench]]
+name = "benchmark"
+harness = false
