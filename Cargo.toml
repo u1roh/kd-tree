@@ -19,7 +19,7 @@ typenum = "1.12"
 paste = "1.0"
 
 [dev-dependencies]
-rand = "*"
+rand = "0.7.3"
 criterion = "0.3"
 fux_kdtree = { version = "0.2.0", package = "fux_kdtree" } 
 kdtree = "0.6.0"
