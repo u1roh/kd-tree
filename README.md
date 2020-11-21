@@ -67,13 +67,13 @@ assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
 
 ```rust
 use std::collections::HashMap;
-let items: HashMap<'static str, [i32; 2]> = vec![
+let items: HashMap<&'static str, [i32; 2]> = vec![
     ("a", [10, 20]),
     ("b", [20, 10]),
     ("c", [20, 20]),
 ].into_iter().collect();
-let kdtree = kd_tree::KdTree::build_by_key(vec!["a", "b", "c"], |key, k| items[*key][k]);
-assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &"c");
+let kdtree = kd_tree::KdTree2::build_by_key(items.keys().collect(), |key, k| items[*key][k]);
+assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &&"c");
 ```
 
 ## To own, or not to own
@@ -97,7 +97,7 @@ assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
 ## `KdIndexTree`
 A `KdIndexTree` refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTree<usize, N>`.
 Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
-```
+```rust
 let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdIndexTree::build(&items);
 assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1); // nearest() returns an index of items.
