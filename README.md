@@ -51,6 +51,18 @@ let kdtree = kd_tree::KdTree::build(items);
 assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
 ```
 
+`KdPoint` trait is also implemented for tuple of `KdPoint` and arbitrary type, like `(P, T)` where `P: KdPiont`.
+And a type alias named `KdMap<P, T>` is define as `KdTree<P, <P as KdPoint>::Dim>`.
+So you can build a kd-tree from key-value pairs, as below:
+```rust
+let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec![
+    ([1, 2, 3], "foo"),
+    ([2, 3, 1], "bar"),
+    ([3, 1, 2], "buzz"),
+]);
+assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
+```
+
 ### Without `KdPoint`
 
 ```rust
@@ -64,7 +76,7 @@ let kdtree = kd_tree::KdTree::build_by_key(vec!["a", "b", "c"], |key, k| items[*
 assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &"c");
 ```
 
-# To own, or not to own
+## To own, or not to own
 
 `KdSlice<T, N>` and `KdTree<T, N>` are similar to `str` and `String`, or `Path` and `PathBuf`.
 
@@ -80,4 +92,13 @@ assert_eq!(kdtree.nearest_by(&[18, 21], |key, k| items[*key][k]).item, &"c");
 let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdSlice::sort(&mut items);
 assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
+```
+
+## `KdIndexTree`
+A `KdIndexTree` refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTree<usize, N>`.
+Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
+```
+let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
+let kdtree = kd_tree::KdIndexTree::build(&items);
+assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1); // nearest() returns an index of items.
 ```

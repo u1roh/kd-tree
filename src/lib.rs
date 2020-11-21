@@ -53,7 +53,9 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 }
 
 /// A slice of kd-tree.
-/// This is an unsized type, meaning that it must always be used as a reference. For an owned version of this type, see [`KdTree`].
+/// This type implements [`std::ops::Deref`] to `[T]`.
+/// This is an unsized type, meaning that it must always be used as a reference.
+/// For an owned version of this type, see [`KdTree`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdSlice<T, N: Unsigned>(PhantomData<N>, [T]);
 impl<T, N: Unsigned> std::ops::Deref for KdSlice<T, N> {
@@ -166,6 +168,8 @@ impl<T, N: Unsigned> KdSlice<T, N> {
     /// let kdtree = kd_tree::KdSlice3::sort_by_key(&mut items, |item, k| OrderedFloat(item.point[k]));
     /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).item.id, 222);
     /// ```
+    /// # Panics
+    /// Panics if `self.is_empty()`.
     pub fn nearest_by<Q: KdPoint>(
         &self,
         query: &Q,
@@ -180,6 +184,8 @@ impl<T, N: Unsigned> KdSlice<T, N> {
     /// let kdtree = kd_tree::KdSlice::sort(&mut items);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &[3, 1, 2]);
     /// ```
+    /// # Panics
+    /// Panics if `self.is_empty()`.
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
@@ -318,6 +324,13 @@ impl<T, N: Unsigned> KdTree<T, N> {
     }
 }
 
+/// This type refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTree<usize, N>`.
+/// Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
+/// ```
+/// let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
+/// let kdtree = kd_tree::KdIndexTree::build(&items);
+/// assert_eq!(kdtree.nearest(&[3, 1, 2]).item, &1); // nearest() returns an index of items.
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KdIndexTree<'a, T, N: Unsigned> {
     source: &'a [T],
@@ -428,3 +441,34 @@ macro_rules! impl_kd_points {
     };
 }
 impl_kd_points!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+
+impl<P: KdPoint, T> KdPoint for (P, T) {
+    type Scalar = P::Scalar;
+    type Dim = P::Dim;
+    fn at(&self, k: usize) -> Self::Scalar {
+        self.0.at(k)
+    }
+}
+
+/// kd-tree of key-value pairs.
+/// ```
+/// let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec![
+///     ([1, 2, 3], "foo"),
+///     ([2, 3, 1], "bar"),
+///     ([3, 1, 2], "buzz"),
+/// ]);
+/// assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
+/// ```
+pub type KdMap<P, T> = KdTree<(P, T), <P as KdPoint>::Dim>;
+
+/// kd-tree slice of key-value pairs.
+/// ```
+/// let mut items: Vec<([isize; 3], &'static str)> = vec![
+///     ([1, 2, 3], "foo"),
+///     ([2, 3, 1], "bar"),
+///     ([3, 1, 2], "buzz"),
+/// ];
+/// let kdmap = kd_tree::KdMapSlice::sort(&mut items);
+/// assert_eq!(kdmap.nearest(&[3, 1, 2]).item.1, "buzz");
+/// ```
+pub type KdMapSlice<P, T> = KdSlice<(P, T), <P as KdPoint>::Dim>;
