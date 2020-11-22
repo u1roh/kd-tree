@@ -487,3 +487,44 @@ pub type KdMap<P, T> = KdTree<(P, T)>;
 /// assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 /// ```
 pub type KdMapSlice<P, T> = KdSlice<(P, T)>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nearest() {
+        let mut gen3d = random3d_generator();
+        let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+        for _ in 0..100 {
+            let query = gen3d();
+            let found = kdtree.nearest(&query).unwrap().item;
+            let expected = kdtree
+                .iter()
+                .min_by_key(|p| ordered_float::OrderedFloat(squared_distance(p, &query)))
+                .unwrap();
+            assert_eq!(found, expected);
+        }
+    }
+
+    fn squared_distance(p1: &[f64; 3], p2: &[f64; 3]) -> f64 {
+        let dx = p1[0] - p2[0];
+        let dy = p1[1] - p2[1];
+        let dz = p1[2] - p2[2];
+        dx * dx + dy * dy + dz * dz
+    }
+
+    fn random3d_generator() -> impl FnMut() -> [f64; 3] {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        move || [rng.gen(), rng.gen(), rng.gen()]
+    }
+
+    fn vec<T>(count: usize, mut f: impl FnMut(usize) -> T) -> Vec<T> {
+        let mut items = Vec::with_capacity(count);
+        for i in 0..count {
+            items.push(f(i));
+        }
+        items
+    }
+}
