@@ -10,8 +10,10 @@
 //! assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
 //! ```
 mod nearest;
+mod nearests;
 mod sort;
 use nearest::*;
+use nearests::*;
 use sort::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -224,6 +226,57 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         kd_nearest_with(self.items(), N::to_usize(), kd_difference)
     }
     */
+
+    /// Returns the nearest item from the input point. Returns `None` if `self.is_empty()`.
+    /// # Example
+    /// ```
+    /// struct Item {
+    ///     point: [f64; 3],
+    ///     id: usize,
+    /// }
+    /// let mut items: Vec<Item> = vec![
+    ///     Item { point: [1.0, 2.0, 3.0], id: 111 },
+    ///     Item { point: [3.0, 1.0, 2.0], id: 222 },
+    ///     Item { point: [2.0, 3.0, 1.0], id: 333 },
+    /// ];
+    /// use ordered_float::OrderedFloat;
+    /// let kdtree = kd_tree::KdSlice3::sort_by_key(&mut items, |item, k| OrderedFloat(item.point[k]));
+    /// let nearests = kdtree.nearests_by(&[2.5, 2.0, 1.4], 2, |item, k| item.point[k]);
+    /// assert_eq!(nearests.len(), 2);
+    /// assert_eq!(nearests[0].item.id, 333);
+    /// assert_eq!(nearests[1].item.id, 222);
+    /// ```
+    pub fn nearests_by<Q: KdPoint>(
+        &self,
+        query: &Q,
+        num: usize,
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> Vec<ItemAndDistance<T, Q::Scalar>> {
+        kd_nearests_by(self.items(), query, num, coord)
+    }
+
+    /// Returns kNN(k nearest neighbors) from the input point.
+    /// # Example
+    /// ```
+    /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1], [3, 2, 2]];
+    /// let kdtree = kd_tree::KdSlice::sort(&mut items);
+    /// let nearests = kdtree.nearests(&[3, 1, 2], 2);
+    /// assert_eq!(nearests.len(), 2);
+    /// assert_eq!(nearests[0].item, &[3, 1, 2]);
+    /// assert_eq!(nearests[1].item, &[3, 2, 2]);
+    /// ```
+    /// # Panics
+    /// Panics if `self.is_empty()`.
+    pub fn nearests(
+        &self,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+        num: usize,
+    ) -> Vec<ItemAndDistance<T, T::Scalar>>
+    where
+        T: KdPoint,
+    {
+        kd_nearests(self.items(), query, num)
+    }
 }
 
 /// An owned kd-tree.
@@ -504,6 +557,26 @@ mod tests {
                 .min_by_key(|p| ordered_float::OrderedFloat(squared_distance(p, &query)))
                 .unwrap();
             assert_eq!(found, expected);
+        }
+    }
+
+    #[test]
+    fn test_nearests() {
+        let mut gen3d = random3d_generator();
+        let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+        const NUM: usize = 5;
+        for _ in 0..100 {
+            let query = gen3d();
+            let found = kdtree.nearests(&query, NUM);
+            assert_eq!(found.len(), NUM);
+            for i in 1..found.len() {
+                assert!(found[i - 1].squared_distance <= found[i].squared_distance);
+            }
+            let count = kdtree
+                .iter()
+                .filter(|p| squared_distance(p, &query) <= found[NUM - 1].squared_distance)
+                .count();
+            assert_eq!(count, NUM);
         }
     }
 
