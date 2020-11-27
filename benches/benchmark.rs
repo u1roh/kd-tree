@@ -74,6 +74,20 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             },
         );
         group.bench_with_input(
+            BenchmarkId::new("kd_tree/nearests", log10n),
+            log10n,
+            |b, log10n| {
+                let kdtree = KdTree::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
+                b.iter(|| {
+                    let i = rng.gen::<usize>() % kdtree.len();
+                    assert_eq!(
+                        kdtree.nearests(&kdtree[i], 1)[0].item.coord,
+                        kdtree[i].coord
+                    );
+                });
+            },
+        );
+        group.bench_with_input(
             BenchmarkId::new("fux_kdtree", log10n),
             log10n,
             |b, log10n| {
@@ -105,9 +119,47 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
     }
 }
 
+fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let mut group = c.benchmark_group("nearests");
+    const N: usize = 100000;
+    let points = gen_points3d(N);
+    let kdtree = {
+        let mut kdtree = kdtree::KdTree::new(3);
+        for p in &points {
+            kdtree.add(&p.coord, p.id).unwrap();
+        }
+        kdtree
+    };
+    let kd_tree = KdTree::build_by_ordered_float(points.clone());
+    for k in &[1, 5, 10, 50] {
+        group.bench_with_input(BenchmarkId::new("kd_tree", k), k, |b, k| {
+            b.iter(|| {
+                let i = rng.gen::<usize>() % kd_tree.len();
+                let nearests = kd_tree.nearests(&kd_tree[i], *k);
+                assert_eq!(nearests[0].item.coord, kd_tree[i].coord);
+            });
+        });
+        group.bench_with_input(BenchmarkId::new("kdtree", k), k, |b, k| {
+            b.iter(|| {
+                let i = rng.gen::<usize>() % N;
+                assert_eq!(
+                    kdtree
+                        .nearest(&points[i].coord, *k, &kdtree::distance::squared_euclidean)
+                        .unwrap()[0]
+                        .1,
+                    &points[i].id
+                );
+            })
+        });
+    }
+}
+
 criterion_group!(benches1, bench_kdtree_construction);
 criterion_group!(benches2, bench_kdtree_nearest_search);
-criterion_main!(benches1, benches2);
+criterion_group!(benches3, bench_kdtree_k_nearest_search);
+criterion_main!(benches1, benches2, benches3);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct TestItem<T> {
