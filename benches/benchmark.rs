@@ -156,10 +156,47 @@ fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
     }
 }
 
+fn bench_kdtree_within_radius(c: &mut Criterion) {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let mut group = c.benchmark_group("within_radius");
+    const N: usize = 100000;
+    let points = gen_points3d(N);
+    let kdtree = {
+        let mut kdtree = kdtree::KdTree::new(3);
+        for p in &points {
+            kdtree.add(&p.coord, p.id).unwrap();
+        }
+        kdtree
+    };
+    let kd_tree = KdTree::build_by_ordered_float(points.clone());
+    for radius in &[0.05, 0.1, 0.2, 0.4] {
+        group.bench_with_input(BenchmarkId::new("kd_tree", radius), radius, |b, radius| {
+            b.iter(|| {
+                let i = rng.gen::<usize>() % kd_tree.len();
+                let _nearests = kd_tree.within_radius(&kd_tree[i], *radius);
+            });
+        });
+        group.bench_with_input(BenchmarkId::new("kdtree", radius), radius, |b, radius| {
+            b.iter(|| {
+                let i = rng.gen::<usize>() % N;
+                kdtree
+                    .within(
+                        &points[i].coord,
+                        *radius,
+                        &kdtree::distance::squared_euclidean,
+                    )
+                    .unwrap();
+            })
+        });
+    }
+}
+
 criterion_group!(benches1, bench_kdtree_construction);
 criterion_group!(benches2, bench_kdtree_nearest_search);
 criterion_group!(benches3, bench_kdtree_k_nearest_search);
-criterion_main!(benches1, benches2, benches3);
+criterion_group!(benches4, bench_kdtree_within_radius);
+criterion_main!(benches1, benches2, benches3, benches4);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct TestItem<T> {

@@ -12,12 +12,14 @@
 mod nearest;
 mod nearests;
 mod sort;
+mod within;
 use nearest::*;
 use nearests::*;
 use sort::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 use typenum::Unsigned;
+use within::*;
 
 /// A trait to represent k-dimensional point.
 ///
@@ -276,6 +278,47 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         T: KdPoint,
     {
         kd_nearests(self.items(), query, num)
+    }
+
+    pub fn within_by(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&T> {
+        kd_within_by(&self, N::to_usize(), compare)
+    }
+
+    pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>; 2]) -> Vec<&T>
+    where
+        T: KdPoint,
+    {
+        assert!((0..T::dim()).all(|k| query[0].at(k) <= query[1].at(k)));
+        kd_within(&self, query)
+    }
+
+    pub fn within_radius(
+        &self,
+        center: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+        radius: T::Scalar,
+    ) -> Vec<&T>
+    where
+        T: KdPoint,
+    {
+        let mut results = self.within_by(|item, k| {
+            let a = item.at(k);
+            if a < center.at(k) - radius {
+                Ordering::Less
+            } else if a > center.at(k) + radius {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        });
+        results.retain(|item| {
+            let mut distance = <T::Scalar as num_traits::Zero>::zero();
+            for k in 0..N::to_usize() {
+                let diff = item.at(k) - center.at(k);
+                distance += diff * diff;
+            }
+            distance < radius * radius
+        });
+        results
     }
 }
 
@@ -580,7 +623,44 @@ mod tests {
         }
     }
 
-    fn squared_distance(p1: &[f64; 3], p2: &[f64; 3]) -> f64 {
+    #[test]
+    fn test_within() {
+        let mut gen3d = random3d_generator();
+        let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+        for _ in 0..100 {
+            let mut p1 = gen3d();
+            let mut p2 = gen3d();
+            for k in 0..3 {
+                if p1[k] > p2[k] {
+                    std::mem::swap(&mut p1[k], &mut p2[k]);
+                }
+            }
+            let found = kdtree.within(&[p1, p2]);
+            let count = kdtree
+                .iter()
+                .filter(|p| (0..3).all(|k| p1[k] <= p[k] && p[k] <= p2[k]))
+                .count();
+            assert_eq!(found.len(), count);
+        }
+    }
+
+    #[test]
+    fn test_within_radius() {
+        let mut gen3d = random3d_generator();
+        let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+        const RADIUS: f64 = 0.1;
+        for _ in 0..100 {
+            let query = gen3d();
+            let found = kdtree.within_radius(&query, RADIUS);
+            let count = kdtree
+                .iter()
+                .filter(|p| squared_distance(p, &query) < RADIUS * RADIUS)
+                .count();
+            assert_eq!(found.len(), count);
+        }
+    }
+
+    fn squared_distance<T: num_traits::Num + Copy>(p1: &[T; 3], p2: &[T; 3]) -> T {
         let dx = p1[0] - p2[0];
         let dy = p1[1] - p2[1];
         let dz = p1[2] - p2[2];
