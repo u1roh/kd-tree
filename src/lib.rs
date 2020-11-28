@@ -1,19 +1,34 @@
 //! k-dimensional tree.
 //!
-//! # Example
+//! # Usage
 //! ```
+//! // construct kd-tree
 //! let kdtree = kd_tree::KdTree::build_by_ordered_float(vec![
 //!     [1.0, 2.0, 3.0],
 //!     [3.0, 1.0, 2.0],
 //!     [2.0, 3.0, 1.0],
 //! ]);
-//! assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
+//!
+//! // search the nearest neighbor
+//! let found = kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap();
+//! assert_eq!(found.item, &[3.0, 1.0, 2.0]);
+//!
+//! // search k-nearest neighbors
+//! let found = kdtree.nearests(&[1.5, 2.5, 1.8], 2);
+//! assert_eq!(found[0].item, &[2.0, 3.0, 1.0]);
+//! assert_eq!(found[1].item, &[1.0, 2.0, 3.0]);
+//!
+//! // search points within a sphere
+//! let found = kdtree.within_radius(&[2.0, 1.5, 2.5], 1.5);
+//! assert_eq!(found.len(), 2);
+//! assert!(found.iter().any(|&&p| p == [1.0, 2.0, 3.0]));
+//! assert!(found.iter().any(|&&p| p == [3.0, 1.0, 2.0]));
 //! ```
 mod nearest;
 mod nearests;
 mod sort;
-mod within;
 mod tests;
+mod within;
 use nearest::*;
 use nearests::*;
 use sort::*;

@@ -4,7 +4,31 @@ k-dimensional tree.
 
 Fast, simple, and easy to use.
 
-Only nearest point search is available, currently.
+# Usage
+
+```rust
+// construct kd-tree
+let kdtree = kd_tree::KdTree::build_by_ordered_float(vec![
+    [1.0, 2.0, 3.0],
+    [3.0, 1.0, 2.0],
+    [2.0, 3.0, 1.0],
+]);
+
+// search the nearest neighbor
+let found = kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap();
+assert_eq!(found.item, &[3.0, 1.0, 2.0]);
+
+// search k-nearest neighbors
+let found = kdtree.nearests(&[1.5, 2.5, 1.8], 2);
+assert_eq!(found[0].item, &[2.0, 3.0, 1.0]);
+assert_eq!(found[1].item, &[1.0, 2.0, 3.0]);
+
+// search points within a sphere
+let found = kdtree.within_radius(&[2.0, 1.5, 2.5], 1.5);
+assert_eq!(found.len(), 2);
+assert!(found.iter().any(|&&p| p == [1.0, 2.0, 3.0]));
+assert!(found.iter().any(|&&p| p == [3.0, 1.0, 2.0]));
+```
 
 ## With or without `KdPoint`
 
@@ -56,6 +80,7 @@ assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
 `KdPoint` trait is also implemented for tuple of a `KdPoint` and an arbitrary type, like `(P, T)` where `P: KdPoint`.
 And a type alias named `KdMap<P, T>` is defined as `KdTree<(P, T)>`.
 So you can build a kd-tree from key-value pairs, as below:
+
 ```rust
 let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec![
     ([1, 2, 3], "foo"),
@@ -97,8 +122,10 @@ assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
 ```
 
 ## `KdIndexTreeN`
+
 A `KdIndexTreeN` refers a slice of items, `[T]`, and contains kd-tree of indices to the items, `KdTreeN<usize, N>`.
 Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
+
 ```rust
 let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdIndexTree::build(&items);
