@@ -21,6 +21,14 @@ fn bench_kdtree_construction(c: &mut Criterion) {
             },
         );
         group.bench_with_input(
+            BenchmarkId::new("kd_index_tree", log10n),
+            log10n,
+            |b, log10n| {
+                let points = gen_points3d(10usize.pow(*log10n));
+                b.iter(|| KdIndexTree::build_by_ordered_float(&points));
+            },
+        );
+        group.bench_with_input(
             BenchmarkId::new("fux_kdtree", log10n),
             log10n,
             |b, log10n| {
@@ -70,6 +78,18 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
                         kdtree.nearest(&kdtree[i]).unwrap().item.coord,
                         kdtree[i].coord
                     );
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("kd_index_tree", log10n),
+            log10n,
+            |b, log10n| {
+                let points = gen_points3d(10usize.pow(*log10n));
+                let kdtree = KdIndexTree::build_by_ordered_float(&points);
+                b.iter(|| {
+                    let i = rng.gen::<usize>() % points.len();
+                    assert_eq!(kdtree.nearest(&points[i]).unwrap().item, &i);
                 });
             },
         );
@@ -133,12 +153,20 @@ fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
         kdtree
     };
     let kd_tree = KdTree::build_by_ordered_float(points.clone());
-    for k in &[1, 5, 10, 50] {
+    let kd_index_tree = KdIndexTree::build_by_ordered_float(&points);
+    for k in &[1, 5, 10, 20, 50] {
         group.bench_with_input(BenchmarkId::new("kd_tree", k), k, |b, k| {
             b.iter(|| {
                 let i = rng.gen::<usize>() % kd_tree.len();
                 let nearests = kd_tree.nearests(&kd_tree[i], *k);
                 assert_eq!(nearests[0].item.coord, kd_tree[i].coord);
+            });
+        });
+        group.bench_with_input(BenchmarkId::new("kd_index_tree", k), k, |b, k| {
+            b.iter(|| {
+                let i = rng.gen::<usize>() % points.len();
+                let nearests = kd_index_tree.nearests(&points[i], *k);
+                assert_eq!(nearests[0].item, &i);
             });
         });
         group.bench_with_input(BenchmarkId::new("kdtree", k), k, |b, k| {
@@ -170,6 +198,7 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
         kdtree
     };
     let kd_tree = KdTree::build_by_ordered_float(points.clone());
+    let kd_index_tree = KdIndexTree::build_by_ordered_float(&points);
     for radius in &[0.05, 0.1, 0.2, 0.4] {
         group.bench_with_input(BenchmarkId::new("kd_tree", radius), radius, |b, radius| {
             b.iter(|| {
@@ -177,6 +206,16 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
                 let _nearests = kd_tree.within_radius(&kd_tree[i], *radius);
             });
         });
+        group.bench_with_input(
+            BenchmarkId::new("kd_index_tree", radius),
+            radius,
+            |b, radius| {
+                b.iter(|| {
+                    let i = rng.gen::<usize>() % kd_tree.len();
+                    let _nearests = kd_index_tree.within_radius(&points[i], *radius);
+                });
+            },
+        );
         group.bench_with_input(BenchmarkId::new("kdtree", radius), radius, |b, radius| {
             b.iter(|| {
                 let i = rng.gen::<usize>() % N;
