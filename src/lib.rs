@@ -176,7 +176,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// let kdtree = kd_tree::KdSlice3::sort_by_key(&mut items, |item, k| OrderedFloat(item.point[k]));
     /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
-    pub fn nearest_by<Q: KdPoint>(
+    pub fn nearest_by<Q: KdPoint<Dim = N>>(
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
@@ -195,14 +195,12 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// let kdtree = kd_tree::KdSlice::sort(&mut items);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
-    /// # Panics
-    /// Panics if `self.is_empty()`.
     pub fn nearest(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
     ) -> Option<ItemAndDistance<T, T::Scalar>>
     where
-        T: KdPoint,
+        T: KdPoint<Dim = N>,
     {
         if self.is_empty() {
             None
@@ -248,7 +246,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// assert_eq!(nearests[0].item.id, 333);
     /// assert_eq!(nearests[1].item.id, 222);
     /// ```
-    pub fn nearests_by<Q: KdPoint>(
+    pub fn nearests_by<Q: KdPoint<Dim = N>>(
         &self,
         query: &Q,
         num: usize,
@@ -267,58 +265,82 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// assert_eq!(nearests[0].item, &[3, 1, 2]);
     /// assert_eq!(nearests[1].item, &[3, 2, 2]);
     /// ```
-    /// # Panics
-    /// Panics if `self.is_empty()`.
     pub fn nearests(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
         num: usize,
     ) -> Vec<ItemAndDistance<T, T::Scalar>>
     where
-        T: KdPoint,
+        T: KdPoint<Dim = N>,
     {
         kd_nearests(self.items(), query, num)
     }
 
-    pub fn within_by(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&T> {
-        kd_within_by(&self, N::to_usize(), compare)
+    pub fn within_by_cmp(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&T> {
+        kd_within_by_cmp(&self, N::to_usize(), compare)
     }
 
-    pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>; 2]) -> Vec<&T>
-    where
-        T: KdPoint,
-    {
-        assert!((0..T::dim()).all(|k| query[0].at(k) <= query[1].at(k)));
-        kd_within(&self, query)
-    }
-
-    pub fn within_radius(
+    pub fn within_by<Q: KdPoint<Dim = N>>(
         &self,
-        center: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
-        radius: T::Scalar,
-    ) -> Vec<&T>
-    where
-        T: KdPoint,
-    {
-        let mut results = self.within_by(|item, k| {
-            let a = item.at(k);
-            if a < center.at(k) - radius {
+        query: &[Q; 2],
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> Vec<&T> {
+        assert!((0..Q::dim()).all(|k| query[0].at(k) <= query[1].at(k)));
+        self.within_by_cmp(|item, k| {
+            let a = coord(item, k);
+            if a < query[0].at(k) {
                 Ordering::Less
-            } else if a > center.at(k) + radius {
+            } else if a > query[1].at(k) {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        })
+    }
+
+    pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = N>; 2]) -> Vec<&T>
+    where
+        T: KdPoint<Dim = N>,
+    {
+        self.within_by(query, |item, k| item.at(k))
+    }
+
+    pub fn within_radius_by<Q: KdPoint<Dim = N>>(
+        &self,
+        query: &Q,
+        radius: Q::Scalar,
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> Vec<&T> {
+        let mut results = self.within_by_cmp(|item, k| {
+            let coord = coord(item, k);
+            if coord < query.at(k) - radius {
+                Ordering::Less
+            } else if coord > query.at(k) + radius {
                 Ordering::Greater
             } else {
                 Ordering::Equal
             }
         });
         results.retain(|item| {
-            let mut distance = <T::Scalar as num_traits::Zero>::zero();
+            let mut distance = <Q::Scalar as num_traits::Zero>::zero();
             for k in 0..N::to_usize() {
-                let diff = item.at(k) - center.at(k);
+                let diff = coord(item, k) - query.at(k);
                 distance += diff * diff;
             }
             distance < radius * radius
         });
         results
+    }
+
+    pub fn within_radius(
+        &self,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        radius: T::Scalar,
+    ) -> Vec<&T>
+    where
+        T: KdPoint<Dim = N>,
+    {
+        self.within_radius_by(query, radius, |item, k| item.at(k))
     }
 }
 
@@ -498,7 +520,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
         Self::build_by_key(points, |item, k| item.at(k))
     }
 
-    pub fn nearest_by<Q: KdPoint>(
+    pub fn nearest_by<Q: KdPoint<Dim = N>>(
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
@@ -515,13 +537,85 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     /// ```
     pub fn nearest(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
     ) -> Option<ItemAndDistance<usize, T::Scalar>>
     where
-        T: KdPoint,
+        T: KdPoint<Dim = N>,
     {
+        self.nearest_by(query, |item, k| item.at(k))
+    }
+
+    pub fn nearests_by<Q: KdPoint<Dim = N>>(
+        &self,
+        query: &Q,
+        num: usize,
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> Vec<ItemAndDistance<usize, Q::Scalar>> {
         self.kdtree
-            .nearest_by(query, |&index, k| self.source[index].at(k))
+            .nearests_by(query, num, |&index, k| coord(&self.source[index], k))
+    }
+
+    /// Returns kNN(k nearest neighbors) from the input point.
+    /// # Example
+    /// ```
+    /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1], [3, 2, 2]];
+    /// let kdtree = kd_tree::KdIndexTree::build(&mut items);
+    /// let nearests = kdtree.nearests(&[3, 1, 2], 2);
+    /// assert_eq!(nearests.len(), 2);
+    /// assert_eq!(nearests[0].item, &1);
+    /// assert_eq!(nearests[1].item, &3);
+    /// ```
+    pub fn nearests(
+        &self,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        num: usize,
+    ) -> Vec<ItemAndDistance<usize, T::Scalar>>
+    where
+        T: KdPoint<Dim = N>,
+    {
+        self.nearests_by(query, num, |item, k| item.at(k))
+    }
+
+    pub fn within_by_cmp(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&usize> {
+        self.kdtree
+            .within_by_cmp(|&index, k| compare(&self.source[index], k))
+    }
+
+    pub fn within_by<Q: KdPoint<Dim = N>>(
+        &self,
+        query: &[Q; 2],
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> Vec<&usize> {
+        self.kdtree
+            .within_by(query, |&index, k| coord(&self.source[index], k))
+    }
+
+    pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = N>; 2]) -> Vec<&usize>
+    where
+        T: KdPoint<Dim = N>,
+    {
+        self.within_by(query, |item, k| item.at(k))
+    }
+
+    pub fn within_radius_by<Q: KdPoint<Dim = N>>(
+        &self,
+        query: &Q,
+        radius: Q::Scalar,
+        coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
+    ) -> Vec<&usize> {
+        self.kdtree
+            .within_radius_by(query, radius, |&index, k| coord(&self.source[index], k))
+    }
+
+    pub fn within_radius(
+        &self,
+        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        radius: T::Scalar,
+    ) -> Vec<&usize>
+    where
+        T: KdPoint<Dim = N>,
+    {
+        self.within_radius_by(query, radius, |item, k| item.at(k))
     }
 }
 

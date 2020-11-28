@@ -1,23 +1,6 @@
-use crate::KdPoint;
 use std::cmp::Ordering;
 
-pub fn kd_within<'a, T: KdPoint>(
-    kdtree: &'a [T],
-    query: &[impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>; 2],
-) -> Vec<&'a T> {
-    kd_within_by(kdtree, T::dim(), |item, k| {
-        let a = item.at(k);
-        if a < query[0].at(k) {
-            Ordering::Less
-        } else if a > query[1].at(k) {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    })
-}
-
-pub fn kd_within_by<'a, T>(
+pub fn kd_within_by_cmp<'a, T>(
     kdtree: &'a [T],
     dim: usize,
     compare: impl Fn(&T, usize) -> Ordering + Copy,
