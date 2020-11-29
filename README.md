@@ -1,10 +1,10 @@
 # kd-tree
 
-k-dimensional tree.
+k-dimensional tree in Rust.
 
 Fast, simple, and easy to use.
 
-# Usage
+## Usage
 
 ```rust
 // construct kd-tree
@@ -129,5 +129,5 @@ Unlike [`KdSlice::sort`], [`KdIndexTree::build`] doesn't sort input items.
 ```rust
 let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
 let kdtree = kd_tree::KdIndexTree::build(&items);
-assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1); // nearest() returns an index of items.
+assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1); // nearest() returns an index of found item.
 ```

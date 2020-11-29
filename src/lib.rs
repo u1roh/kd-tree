@@ -314,6 +314,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         })
     }
 
+    /// search points within a rectangular region
     pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = N>; 2]) -> Vec<&T>
     where
         T: KdPoint<Dim = N>,
@@ -348,6 +349,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         results
     }
 
+    /// search points within k-dimensional sphere
     pub fn within_radius(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
