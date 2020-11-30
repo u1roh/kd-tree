@@ -203,7 +203,7 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("kd_tree", radius), radius, |b, radius| {
             b.iter(|| {
                 let i = rng.gen::<usize>() % kd_tree.len();
-                let _nearests = kd_tree.within_radius(&kd_tree[i], *radius);
+                let _neighbors = kd_tree.within_radius(&kd_tree[i], *radius);
             });
         });
         group.bench_with_input(
@@ -212,17 +212,17 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
             |b, radius| {
                 b.iter(|| {
                     let i = rng.gen::<usize>() % kd_tree.len();
-                    let _nearests = kd_index_tree.within_radius(&points[i], *radius);
+                    let _neighbors = kd_index_tree.within_radius(&points[i], *radius);
                 });
             },
         );
         group.bench_with_input(BenchmarkId::new("kdtree", radius), radius, |b, radius| {
             b.iter(|| {
                 let i = rng.gen::<usize>() % N;
-                kdtree
+                let _neighbors = kdtree
                     .within(
                         &points[i].coord,
-                        *radius,
+                        *radius * *radius,
                         &kdtree::distance::squared_euclidean,
                     )
                     .unwrap();
