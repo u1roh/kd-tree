@@ -734,7 +734,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
         Key: Ord,
         F: Fn(&T, usize) -> Key + Copy + Send,
     {
-        Self::build_by(source, |item1, item2, k| {
+        Self::par_build_by(source, |item1, item2, k| {
             kd_key(item1, k).cmp(&kd_key(item2, k))
         })
     }
@@ -744,7 +744,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
         T: KdPoint<Dim = N>,
         T::Scalar: num_traits::Float,
     {
-        Self::build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
+        Self::par_build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
 
     pub fn par_build(points: &'a [T]) -> Self
@@ -752,7 +752,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
         T: KdPoint<Dim = N>,
         T::Scalar: Ord,
     {
-        Self::build_by_key(points, |item, k| item.at(k))
+        Self::par_build_by_key(points, |item, k| item.at(k))
     }
 }
 
