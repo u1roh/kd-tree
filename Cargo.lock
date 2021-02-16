@@ -264,6 +264,7 @@ dependencies = [
  "paste",
  "pdqselect",
  "rand",
+ "rayon",
  "typenum",
 ]
 
