@@ -734,7 +734,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
         Key: Ord,
         F: Fn(&T, usize) -> Key + Copy + Send,
     {
-        Self::par_build_by(source, |item1, item2, k| {
+        Self::par_build_by(source, move |item1, item2, k| {
             kd_key(item1, k).cmp(&kd_key(item2, k))
         })
     }
