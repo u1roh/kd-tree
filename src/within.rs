@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 
-pub fn kd_within_by_cmp<'a, T>(
-    kdtree: &'a [T],
+pub fn kd_within_by_cmp<T>(
+    kdtree: &[T],
     dim: usize,
     compare: impl Fn(&T, usize) -> Ordering + Copy,
-) -> Vec<&'a T> {
+) -> Vec<&T> {
     fn recurse<'a, T>(
         results: &mut Vec<&'a T>,
         kdtree: &'a [T],

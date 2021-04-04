@@ -422,9 +422,9 @@ impl<T, N: Unsigned> std::borrow::Borrow<KdSliceN<T, N>> for KdTreeN<T, N> {
         self
     }
 }
-impl<T, N: Unsigned> Into<Vec<T>> for KdTreeN<T, N> {
-    fn into(self) -> Vec<T> {
-        self.1
+impl<T, N: Unsigned> From<KdTreeN<T, N>> for Vec<T> {
+    fn from(src: KdTreeN<T, N>) -> Self {
+        src.1
     }
 }
 impl<T, N: Unsigned> KdTreeN<T, N> {
