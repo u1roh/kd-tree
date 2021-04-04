@@ -17,11 +17,12 @@ ordered-float = "2.0.0"
 pdqselect = "0.1.0"
 typenum = "1.12"
 paste = "1.0"
+rayon = { version = "1.5", optional = true }
 
 [dev-dependencies]
 rand = "0.7.3"
 criterion = "0.3"
-fux_kdtree = { version = "0.2.0", package = "fux_kdtree" } 
+fux_kdtree = { version = "0.2.0", package = "fux_kdtree" }
 kdtree = "0.6.0"
 
 [[bench]]

@@ -20,6 +20,25 @@ fn bench_kdtree_construction(c: &mut Criterion) {
                 b.iter(|| KdTree::build(points.clone()));
             },
         );
+        #[cfg(feature = "rayon")]
+        {
+            group.bench_with_input(
+                BenchmarkId::new("kd_tree + rayon (f64)", log10n),
+                log10n,
+                |b, log10n| {
+                    let points = gen_points3d(10usize.pow(*log10n));
+                    b.iter(|| KdTree::par_build_by_ordered_float(points.clone()));
+                },
+            );
+            group.bench_with_input(
+                BenchmarkId::new("kd_tree + rayon (i32)", log10n),
+                log10n,
+                |b, log10n| {
+                    let points = gen_points3i(10usize.pow(*log10n));
+                    b.iter(|| KdTree::par_build(points.clone()));
+                },
+            );
+        }
         group.bench_with_input(
             BenchmarkId::new("kd_index_tree", log10n),
             log10n,

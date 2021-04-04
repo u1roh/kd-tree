@@ -90,5 +90,6 @@ fn vec<T>(count: usize, mut f: impl FnMut(usize) -> T) -> Vec<T> {
     let mut items = Vec::with_capacity(count);
     for i in 0..count {
         items.push(f(i));
-    }    items
+    }
+    items
 }
