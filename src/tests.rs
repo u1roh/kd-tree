@@ -80,10 +80,14 @@ fn squared_distance<T: num_traits::Num + Copy>(p1: &[T; 3], p2: &[T; 3]) -> T {
     dx * dx + dy * dy + dz * dz
 }
 
+// generates a random number between 0 and 1 with 0.1 step
+fn random_10th(rng: &mut impl rand::Rng) -> f64 {
+    f64::from(rng.gen_range(0u8, 10u8)) / 10.0
+}
+
 fn random3d_generator() -> impl FnMut() -> [f64; 3] {
-    use rand::Rng;
     let mut rng = rand::thread_rng();
-    move || [rng.gen(), rng.gen(), rng.gen()]
+    move || [random_10th(&mut rng), random_10th(&mut rng), random_10th(&mut rng)]
 }
 
 fn vec<T>(count: usize, mut f: impl FnMut(usize) -> T) -> Vec<T> {
