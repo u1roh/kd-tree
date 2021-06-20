@@ -18,21 +18,33 @@ fn test_nearest() {
 
 #[test]
 fn test_nearests() {
-    let mut gen3d = random3d_generator();
+    test_nearests_by(random3d_generator());
+    test_nearests_by(random3d_10th_generator());
+}
+
+fn test_nearests_by(mut gen3d: impl FnMut() -> [f64; 3]) {
     let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
     const NUM: usize = 5;
     for _ in 0..100 {
         let query = gen3d();
-        let found = kdtree.nearests(&query, NUM);
-        assert_eq!(found.len(), NUM);
-        for i in 1..found.len() {
-            assert!(found[i - 1].squared_distance <= found[i].squared_distance);
+        let neighborhood = kdtree.nearests(&query, NUM);
+        assert_eq!(neighborhood.len(), NUM);
+        for i in 1..neighborhood.len() {
+            assert!(neighborhood[i - 1].squared_distance <= neighborhood[i].squared_distance);
         }
-        let count = kdtree
+        let neighborhood_radius = neighborhood
             .iter()
-            .filter(|p| squared_distance(p, &query) <= found[NUM - 1].squared_distance)
-            .count();
-        assert_eq!(count, NUM);
+            .max_by_key(|entry| ordered_float::OrderedFloat(entry.squared_distance))
+            .unwrap()
+            .squared_distance;
+        let neighborhood_contains = |p: &[f64; 3]| {
+            neighborhood
+                .iter()
+                .any(|entry| std::ptr::eq(entry.item as _, p as _))
+        };
+        assert!(kdtree.iter().all(
+            |p| neighborhood_contains(p) || neighborhood_radius <= squared_distance(p, &query)
+        ));
     }
 }
 
@@ -80,14 +92,25 @@ fn squared_distance<T: num_traits::Num + Copy>(p1: &[T; 3], p2: &[T; 3]) -> T {
     dx * dx + dy * dy + dz * dz
 }
 
-// generates a random number between 0 and 1 with 0.1 step
-fn random_10th(rng: &mut impl rand::Rng) -> f64 {
-    f64::from(rng.gen_range(0u8, 10u8)) / 10.0
+fn random3d_generator() -> impl FnMut() -> [f64; 3] {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    move || [rng.gen(), rng.gen(), rng.gen()]
 }
 
-fn random3d_generator() -> impl FnMut() -> [f64; 3] {
+fn random3d_10th_generator() -> impl FnMut() -> [f64; 3] {
+    // generates a random number between 0 and 1 with 0.1 step
+    fn random_10th(rng: &mut impl rand::Rng) -> f64 {
+        f64::from(rng.gen_range(0u8, 10u8)) / 10.0
+    }
     let mut rng = rand::thread_rng();
-    move || [random_10th(&mut rng), random_10th(&mut rng), random_10th(&mut rng)]
+    move || {
+        [
+            random_10th(&mut rng),
+            random_10th(&mut rng),
+            random_10th(&mut rng),
+        ]
+    }
 }
 
 fn vec<T>(count: usize, mut f: impl FnMut(usize) -> T) -> Vec<T> {
