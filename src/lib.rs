@@ -24,6 +24,7 @@
 //! assert!(found.iter().any(|&&p| p == [1.0, 2.0, 3.0]));
 //! assert!(found.iter().any(|&&p| p == [3.0, 1.0, 2.0]));
 //! ```
+mod nalgebra;
 mod nearest;
 mod nearests;
 mod sort;

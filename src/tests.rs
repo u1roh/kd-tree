@@ -120,3 +120,41 @@ fn vec<T>(count: usize, mut f: impl FnMut(usize) -> T) -> Vec<T> {
     }
     items
 }
+
+#[cfg(feature = "nalgebra")]
+#[test]
+fn test_nalgebra_point() {
+    use ::nalgebra as na;
+
+    let mut gen3d = random3d_generator();
+    let kdtree: KdTree<na::Point3<f64>> =
+        KdTree::build_by_ordered_float(vec(10000, |_| gen3d().into()));
+    for _ in 0..100 {
+        let query: na::Point3<f64> = gen3d().into();
+        let found = kdtree.nearest(&query).unwrap().item;
+        let expected = kdtree
+            .iter()
+            .min_by_key(|p| ordered_float::OrderedFloat((query - **p).norm()))
+            .unwrap();
+        assert_eq!(found, expected);
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[test]
+fn test_nalgebra_vector() {
+    use ::nalgebra as na;
+
+    let mut gen3d = random3d_generator();
+    let kdtree: KdTree<na::Vector3<f64>> =
+        KdTree::build_by_ordered_float(vec(10000, |_| gen3d().into()));
+    for _ in 0..100 {
+        let query: na::Vector3<f64> = gen3d().into();
+        let found = kdtree.nearest(&query).unwrap().item;
+        let expected = kdtree
+            .iter()
+            .min_by_key(|p| ordered_float::OrderedFloat((query - **p).norm()))
+            .unwrap();
+        assert_eq!(found, expected);
+    }
+}
