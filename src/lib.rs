@@ -24,6 +24,7 @@
 //! assert!(found.iter().any(|&&p| p == [1.0, 2.0, 3.0]));
 //! assert!(found.iter().any(|&&p| p == [3.0, 1.0, 2.0]));
 //! ```
+mod nalgebra;
 mod nearest;
 mod nearests;
 mod sort;
@@ -293,7 +294,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     }
 
     pub fn within_by_cmp(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&T> {
-        kd_within_by_cmp(&self, N::to_usize(), compare)
+        kd_within_by_cmp(self, N::to_usize(), compare)
     }
 
     pub fn within_by<Q: KdPoint<Dim = N>>(
