@@ -101,7 +101,7 @@ fn random3d_generator() -> impl FnMut() -> [f64; 3] {
 fn random3d_10th_generator() -> impl FnMut() -> [f64; 3] {
     // generates a random number between 0 and 1 with 0.1 step
     fn random_10th(rng: &mut impl rand::Rng) -> f64 {
-        f64::from(rng.gen_range(0u8, 10u8)) / 10.0
+        f64::from(rng.gen_range(0u8..=10u8)) / 10.0
     }
     let mut rng = rand::thread_rng();
     move || {
