@@ -294,7 +294,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     }
 
     pub fn within_by_cmp(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&T> {
-        kd_within_by_cmp(&self, N::to_usize(), compare)
+        kd_within_by_cmp(self, N::to_usize(), compare)
     }
 
     pub fn within_by<Q: KdPoint<Dim = N>>(
