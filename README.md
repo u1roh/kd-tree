@@ -90,6 +90,27 @@ let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec!
 assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 ```
 
+#### `nalgebra` feature
+`KdPoint` trait is implemented for `nalgebra`'s vectors and points.
+
+Enable `nalgebra` feature in your Cargo.toml:
+```toml
+kd-tree = { version = "...", features = ["nalgebra"] }
+```
+Then, you can use it as follows:
+```rust
+use nalgebra::Point3;
+let items: Vec<Point3<i32>> = vec![
+    Point3::new(1, 2, 3),
+    Point3::new(3, 1, 2),
+    Point3::new(2, 3, 1)
+];
+let kdtree = kd_tree::KdTree::build(items);
+let query = Point3::new(3, 1, 2);
+assert_eq!(kdtree.nearest(&query).unwrap().item, &query);
+```
+
+
 ### Without `KdPoint`
 
 ```rust
