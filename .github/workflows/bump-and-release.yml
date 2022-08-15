@@ -1,0 +1,89 @@
+name: bump & release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bumpTarget:
+        description: "bump target major/minor/patch"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+jobs:
+  bump-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - run: rustup component add rustfmt
+      - run: rustup component add clippy
+
+      - run: cargo install cargo-edit
+      - run: cargo set-version --bump ${{ github.event.inputs.bumpTarget }}
+
+      - name: get new version
+        id: get-new-version
+        run: |
+          echo "::set-output name=NEW_VERSION::`grep -w "^version" -m 1 Cargo.toml | sed -e "s/version = //g" | sed -e "s/\"/g"`"
+
+      - name: show new version
+        run: |
+          echo "new version = ${{ steps.get-new-version.outputs.NEW_VERSION }}"
+
+      - name: cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+      - name: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: cargo doc
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --no-deps
+
+      - name: cargo package
+        uses: actions-rs/cargo@v1
+        with:
+          command: package
+
+      - name: commit
+        run: |
+          git add .
+          git commit -m "update version to ${{ steps.get-new-version.outputs.NEW_VERSION }}"
+
+      - name: tag
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ steps.get-new-version.outputs.NEW_VERSION }}
+          tag_name: v${{ steps.get-new-version.outputs.NEW_VERSION }}
+
+      # - name: cargo publish
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: publish
