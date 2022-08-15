@@ -33,7 +33,7 @@ jobs:
       - name: get new version
         id: get-new-version
         run: |
-          echo "::set-output name=NEW_VERSION::`grep -w "^version" -m 1 Cargo.toml | sed -e "s/version = //g" | sed -e "s/\"/g"`"
+          echo "::set-output name=NEW_VERSION::`grep -w "^version" -m 1 Cargo.toml | sed -e "s/version = //g" | sed -e "s/\\"//g"`"
 
       - name: show new version
         run: |
