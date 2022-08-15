@@ -83,7 +83,7 @@ jobs:
           name: v${{ steps.get-new-version.outputs.NEW_VERSION }}
           tag_name: v${{ steps.get-new-version.outputs.NEW_VERSION }}
 
-      # - name: cargo publish
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     command: publish
+      - name: cargo publish
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
