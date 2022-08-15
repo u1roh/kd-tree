@@ -67,6 +67,11 @@ jobs:
           command: doc
           args: --no-deps
 
+      - name: git config
+        run: |
+          git config --local user.email "dummy@example.com"
+          git config --local user.name "github-actions workflow"
+
       - name: commit
         run: |
           git add .
