@@ -72,11 +72,11 @@ jobs:
           git config --local user.email "dummy@example.com"
           git config --local user.name "github-actions workflow"
 
-      - name: commit & push to master
+      - name: commit & push to main
         run: |
           git add .
           git commit -m "update version to ${{ steps.get-new-version.outputs.NEW_VERSION }}"
-          git push -u origin master
+          git push -u origin main
 
       - name: tag
         uses: softprops/action-gh-release@v1
