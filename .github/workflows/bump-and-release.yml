@@ -72,10 +72,11 @@ jobs:
           git config --local user.email "dummy@example.com"
           git config --local user.name "github-actions workflow"
 
-      - name: commit
+      - name: commit & push to master
         run: |
           git add .
           git commit -m "update version to ${{ steps.get-new-version.outputs.NEW_VERSION }}"
+          git push -u origin master
 
       - name: tag
         uses: softprops/action-gh-release@v1
@@ -92,3 +93,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: publish
+          args: --token ${{ secrets.CRATES_IO_ACCESS_TOKEN }}
