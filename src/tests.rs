@@ -158,3 +158,24 @@ fn test_nalgebra_vector() {
         assert_eq!(found, expected);
     }
 }
+
+#[cfg(feature = "serde")]
+#[test]
+fn test_serde() {
+    let mut gen3d = random3d_generator();
+    let src = KdTree::build_by_ordered_float(vec(100, |_| gen3d()));
+
+    let json = serde_json::to_string(&src).unwrap();
+    dbg!(&json);
+
+    let dst: KdTree3<[f64; 3]> = serde_json::from_str(&json).unwrap();
+    assert_eq!(src.len(), dst.len());
+
+    fn round(p: [f64; 3]) -> [f64; 3] {
+        let round = |i: usize| (p[i] * 1000.0).round() / 1000.0;
+        [round(0), round(1), round(2)]
+    }
+    for i in 0..src.len() {
+        assert_eq!(round(src[i]), round(dst[i]));
+    }
+}

@@ -405,6 +405,7 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
 /// An owned kd-tree.
 /// This type implements [`std::ops::Deref`] to [`KdSlice`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KdTreeN<T, N: Unsigned>(PhantomData<N>, Vec<T>);
 pub type KdTree<T> = KdTreeN<T, <T as KdPoint>::Dim>;
 impl<T, N: Unsigned> std::ops::Deref for KdTreeN<T, N> {
