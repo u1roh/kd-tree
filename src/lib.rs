@@ -405,7 +405,6 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
 /// An owned kd-tree.
 /// This type implements [`std::ops::Deref`] to [`KdSlice`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KdTreeN<T, N: Unsigned>(PhantomData<N>, Vec<T>);
 pub type KdTree<T> = KdTreeN<T, <T as KdPoint>::Dim>;
 impl<T, N: Unsigned> std::ops::Deref for KdTreeN<T, N> {
@@ -512,6 +511,20 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
         T::Scalar: Ord,
     {
         Self::build_by_key(points, |item, k| item.at(k))
+    }
+}
+#[cfg(feature = "serde")]
+mod impl_serde {
+    use super::{KdTreeN, PhantomData, Unsigned};
+    impl<T: serde::Serialize, N: Unsigned> serde::Serialize for KdTreeN<T, N> {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            self.1.serialize(serializer)
+        }
+    }
+    impl<'de, T: serde::Deserialize<'de>, N: Unsigned> serde::Deserialize<'de> for KdTreeN<T, N> {
+        fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            Vec::<T>::deserialize(deserializer).map(|items| Self(PhantomData, items))
+        }
     }
 }
 #[cfg(feature = "rayon")]
