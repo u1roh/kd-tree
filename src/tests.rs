@@ -179,3 +179,18 @@ fn test_serde() {
         assert_eq!(round(src[i]), round(dst[i]));
     }
 }
+
+#[cfg(feature = "nalgebra-serde")]
+#[test]
+fn test_nalgebra_serde() {
+    use ::nalgebra as na;
+
+    let src: KdTree<na::Point3<f64>> =
+        KdTree::build_by_ordered_float(vec![na::Point3::new(1.0, 2.0, 3.0)]);
+
+    let json = serde_json::to_string(&src).unwrap();
+    assert_eq!(json, "[[1.0,2.0,3.0]]");
+
+    let dst: KdTree3<na::Point3<f64>> = serde_json::from_str(&json).unwrap();
+    assert_eq!(src, dst);
+}
