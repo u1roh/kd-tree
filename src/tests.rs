@@ -176,12 +176,26 @@ fn test_serde() {
 fn test_nalgebra_serde() {
     use ::nalgebra as na;
 
-    let src: KdTree<na::Point3<f64>> =
-        KdTree::build_by_ordered_float(vec![na::Point3::new(1.0, 2.0, 3.0)]);
+    let src: KdTree<na::Point3<f64>> = KdTree::build_by_ordered_float(vec![
+        na::Point3::new(1.0, 2.0, 3.0),
+        na::Point3::new(4.0, 5.0, 6.0),
+    ]);
 
     let json = serde_json::to_string(&src).unwrap();
-    assert_eq!(json, "[[1.0,2.0,3.0]]");
+    assert_eq!(json, "[[1.0,2.0,3.0],[4.0,5.0,6.0]]");
 
     let dst: KdTree3<na::Point3<f64>> = serde_json::from_str(&json).unwrap();
     assert_eq!(src, dst);
+}
+
+#[cfg(feature = "rayon")]
+#[test]
+fn test_rayon() {
+    let points = {
+        let mut gen3d = random3d_generator();
+        vec(1000, |_| gen3d())
+    };
+    let kdtree1 = KdTree::build_by_ordered_float(points.clone());
+    let kdtree2 = KdTree::par_build_by_ordered_float(points.clone());
+    assert_eq!(kdtree1, kdtree2);
 }
