@@ -20,12 +20,17 @@ typenum = "1.15.0"
 paste = "1.0.8"
 rayon = { version = "1.5.3", optional = true }
 nalgebra = { version = "0.31.1", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[features]
+nalgebra-serde = ["serde", "nalgebra", "nalgebra/serde-serialize"]
 
 [dev-dependencies]
 rand = "0.8.5"
 criterion = "0.3.6"
 fux_kdtree = { version = "0.2.0", package = "fux_kdtree" }
 kdtree = "0.6.0"
+serde_json = "1.0"
 
 [[bench]]
 name = "benchmark"

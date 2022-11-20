@@ -513,6 +513,20 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
         Self::build_by_key(points, |item, k| item.at(k))
     }
 }
+#[cfg(feature = "serde")]
+mod impl_serde {
+    use super::{KdTreeN, PhantomData, Unsigned};
+    impl<T: serde::Serialize, N: Unsigned> serde::Serialize for KdTreeN<T, N> {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            self.1.serialize(serializer)
+        }
+    }
+    impl<'de, T: serde::Deserialize<'de>, N: Unsigned> serde::Deserialize<'de> for KdTreeN<T, N> {
+        fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            Vec::<T>::deserialize(deserializer).map(|items| Self(PhantomData, items))
+        }
+    }
+}
 #[cfg(feature = "rayon")]
 impl<T: Send, N: Unsigned> KdTreeN<T, N> {
     /// Same as [`Self::build_by`], but using multiple threads.
