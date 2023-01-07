@@ -42,6 +42,9 @@ pub fn kd_within_by_cmp<T>(
         }
     }
     let mut results = Vec::new();
+    if kdtree.len() == 0{
+        return results
+    }
     recurse(&mut results, kdtree, 0, dim, compare);
     results
 }
