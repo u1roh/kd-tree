@@ -70,6 +70,12 @@ fn test_within() {
 }
 
 #[test]
+fn test_within_against_empty() {
+    let empty: KdTree<[f64; 3]> = KdTree::build_by_ordered_float(vec![]);
+    assert!(empty.within(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]).is_empty());
+}
+
+#[test]
 fn test_within_radius() {
     let mut gen3d = random3d_generator();
     let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));

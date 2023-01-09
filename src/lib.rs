@@ -316,6 +316,15 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     }
 
     /// search points within a rectangular region
+    /// # Example
+    /// ```
+    /// let mut items: Vec<[i32; 2]> = vec![[0, 0], [1, 0], [0, 1], [1, 1]];
+    /// let kdtree = kd_tree::KdSlice::sort(&mut items);
+    /// let within = kdtree.within(&[[1, 0], [2, 1]]);
+    /// assert_eq!(within.len(), 2);
+    /// assert!(within.contains(&&[1, 0]));
+    /// assert!(within.contains(&&[1, 1]));
+    /// ```
     pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = N>; 2]) -> Vec<&T>
     where
         T: KdPoint<Dim = N>,

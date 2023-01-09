@@ -12,6 +12,9 @@ pub fn kd_within_by_cmp<T>(
         dim: usize,
         compare: impl Fn(&T, usize) -> Ordering + Copy,
     ) {
+        if kdtree.is_empty() {
+            return;
+        }
         let axis = axis % dim;
         let (lower, item, upper) = {
             let mid = kdtree.len() / 2;
@@ -22,29 +25,18 @@ pub fn kd_within_by_cmp<T>(
                 if (1..dim).all(|k| compare(item, (axis + k) % dim) == Ordering::Equal) {
                     results.push(item);
                 }
-                if !lower.is_empty() {
-                    recurse(results, lower, axis + 1, dim, compare);
-                }
-                if !upper.is_empty() {
-                    recurse(results, upper, axis + 1, dim, compare);
-                }
+                recurse(results, lower, axis + 1, dim, compare);
+                recurse(results, upper, axis + 1, dim, compare);
             }
             Ordering::Less => {
-                if !upper.is_empty() {
-                    recurse(results, upper, axis + 1, dim, compare);
-                }
+                recurse(results, upper, axis + 1, dim, compare);
             }
             Ordering::Greater => {
-                if !lower.is_empty() {
-                    recurse(results, lower, axis + 1, dim, compare);
-                }
+                recurse(results, lower, axis + 1, dim, compare);
             }
         }
     }
     let mut results = Vec::new();
-    if kdtree.len() == 0{
-        return results
-    }
     recurse(&mut results, kdtree, 0, dim, compare);
     results
 }
