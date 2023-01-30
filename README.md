@@ -210,3 +210,6 @@ You can build a kd-tree faster with `rayon`.
 ```rust
 let kdtree = KdTree::par_build_by_ordered_float(vec![...]);
 ```
+
+## License
+This library is distributed under the [MIT License](https://opensource.org/licenses/MIT).
