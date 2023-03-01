@@ -1,20 +1,20 @@
 use crate::{ItemAndDistance, KdPoint};
 
-pub fn kd_nearests<'a, T: KdPoint>(
+pub fn kd_nearests<'a, T: KdPoint<N>, const N: usize>(
     kdtree: &'a [T],
-    query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+    query: &impl KdPoint<N, Scalar = T::Scalar>,
     num: usize,
 ) -> Vec<ItemAndDistance<'a, T, T::Scalar>> {
     kd_nearests_by(kdtree, query, num, |item, k| item.at(k))
 }
 
-pub fn kd_nearests_by<'a, T, P: KdPoint>(
+pub fn kd_nearests_by<'a, T, P: KdPoint<N>, const N: usize>(
     kdtree: &'a [T],
     query: &P,
     num: usize,
     get: impl Fn(&T, usize) -> P::Scalar + Copy,
 ) -> Vec<ItemAndDistance<'a, T, P::Scalar>> {
-    fn distance_squared<P: KdPoint, T>(
+    fn distance_squared<P: KdPoint<N>, T, const N: usize>(
         p1: &P,
         p2: &T,
         get: impl Fn(&T, usize) -> P::Scalar,
@@ -26,7 +26,7 @@ pub fn kd_nearests_by<'a, T, P: KdPoint>(
         }
         squared_distance
     }
-    fn recurse<'a, T, Q: KdPoint>(
+    fn recurse<'a, T, Q: KdPoint<N>, const N : usize>(
         nearests: &mut Vec<ItemAndDistance<'a, T, Q::Scalar>>,
         kdtree: &'a [T],
         get: impl Fn(&T, usize) -> Q::Scalar + Copy,

@@ -35,7 +35,6 @@ use nearests::*;
 use sort::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
-use typenum::Unsigned;
 use within::*;
 
 /// A trait to represent k-dimensional point.
@@ -58,11 +57,11 @@ use within::*;
 /// ]);
 /// assert_eq!(kdtree.nearest(&[3.1, 0.1, 2.2]).unwrap().item.id, 222);
 /// ```
-pub trait KdPoint {
+pub trait KdPoint<const N: usize> {
     type Scalar: num_traits::NumAssign + Copy + PartialOrd;
-    type Dim: Unsigned;
+
     fn dim() -> usize {
-        <Self::Dim as Unsigned>::to_usize()
+        N
     }
     fn at(&self, i: usize) -> Self::Scalar;
 }
@@ -78,21 +77,25 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 /// This is an unsized type, meaning that it must always be used as a reference.
 /// For an owned version of this type, see [`KdTree`].
 #[derive(Debug, PartialEq, Eq)]
-pub struct KdSliceN<T, N: Unsigned>(PhantomData<N>, [T]);
-pub type KdSlice<T> = KdSliceN<T, <T as KdPoint>::Dim>;
-impl<T, N: Unsigned> std::ops::Deref for KdSliceN<T, N> {
+pub struct KdSliceN<T, const N: usize>(PhantomData<[(); N]>, [T]);
+
+pub type KdSlice<T> = KdSliceN<T, <T as KdPoint>::DIM>;
+
+impl<T, const N: usize> std::ops::Deref for KdSliceN<T, N> {
     type Target = [T];
     fn deref(&self) -> &[T] {
         &self.1
     }
 }
-impl<T: Clone, N: Unsigned> std::borrow::ToOwned for KdSliceN<T, N> {
+
+impl<T: Clone, const N: usize> std::borrow::ToOwned for KdSliceN<T, N> {
     type Owned = KdTreeN<T, N>;
     fn to_owned(&self) -> Self::Owned {
         KdTreeN(PhantomData, self.1.to_vec())
     }
 }
-impl<T, N: Unsigned> KdSliceN<T, N> {
+
+impl<T, const N: usize> KdSliceN<T, N> {
     pub fn items(&self) -> &[T] {
         &self.1
     }
@@ -119,7 +122,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     where
         F: Fn(&T, &T, usize) -> Ordering + Copy,
     {
-        kd_sort_by(items, N::to_usize(), compare);
+        kd_sort_by(items, N, compare);
         unsafe { Self::new_unchecked(items) }
     }
 
@@ -156,7 +159,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// ```
     pub fn sort_by_ordered_float(points: &mut [T]) -> &Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: num_traits::Float,
     {
         Self::sort_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
@@ -171,7 +174,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// ```
     pub fn sort(points: &mut [T]) -> &Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: Ord,
     {
         Self::sort_by_key(points, |item, k| item.at(k))
@@ -193,7 +196,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// let kdtree = kd_tree::KdSlice3::sort_by_key(&mut items, |item, k| OrderedFloat(item.point[k]));
     /// assert_eq!(kdtree.nearest_by(&[3.1, 0.9, 2.1], |item, k| item.point[k]).unwrap().item.id, 222);
     /// ```
-    pub fn nearest_by<Q: KdPoint<Dim = N>>(
+    pub fn nearest_by<Q: KdPoint<N>>(
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
@@ -214,10 +217,10 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// ```
     pub fn nearest(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        query: &impl KdPoint<N, Scalar = T::Scalar>,
     ) -> Option<ItemAndDistance<T, T::Scalar>>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         if self.is_empty() {
             None
@@ -263,7 +266,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// assert_eq!(nearests[0].item.id, 333);
     /// assert_eq!(nearests[1].item.id, 222);
     /// ```
-    pub fn nearests_by<Q: KdPoint<Dim = N>>(
+    pub fn nearests_by<Q: KdPoint<N>>(
         &self,
         query: &Q,
         num: usize,
@@ -284,20 +287,20 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// ```
     pub fn nearests(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        query: &impl KdPoint<N, Scalar = T::Scalar>,
         num: usize,
     ) -> Vec<ItemAndDistance<T, T::Scalar>>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         kd_nearests(self.items(), query, num)
     }
 
     pub fn within_by_cmp(&self, compare: impl Fn(&T, usize) -> Ordering + Copy) -> Vec<&T> {
-        kd_within_by_cmp(self, N::to_usize(), compare)
+        kd_within_by_cmp(self, N, compare)
     }
 
-    pub fn within_by<Q: KdPoint<Dim = N>>(
+    pub fn within_by<Q: KdPoint<N>>(
         &self,
         query: &[Q; 2],
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
@@ -325,14 +328,14 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// assert!(within.contains(&&[1, 0]));
     /// assert!(within.contains(&&[1, 1]));
     /// ```
-    pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = N>; 2]) -> Vec<&T>
+    pub fn within(&self, query: &[impl KdPoint<N, Scalar = T::Scalar>; 2]) -> Vec<&T>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         self.within_by(query, |item, k| item.at(k))
     }
 
-    pub fn within_radius_by<Q: KdPoint<Dim = N>>(
+    pub fn within_radius_by<Q: KdPoint<N>>(
         &self,
         query: &Q,
         radius: Q::Scalar,
@@ -350,7 +353,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         });
         results.retain(|item| {
             let mut distance = <Q::Scalar as num_traits::Zero>::zero();
-            for k in 0..N::to_usize() {
+            for k in 0..N {
                 let diff = coord(item, k) - query.at(k);
                 distance += diff * diff;
             }
@@ -362,15 +365,16 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     /// search points within k-dimensional sphere
     pub fn within_radius(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        query: &impl KdPoint<N, Scalar = T::Scalar>,
         radius: T::Scalar,
     ) -> Vec<&T>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         self.within_radius_by(query, radius, |item, k| item.at(k))
     }
 }
+
 #[cfg(feature = "rayon")]
 impl<T: Send, N: Unsigned> KdSliceN<T, N> {
     /// Same as [`Self::sort_by`], but using multiple threads.
@@ -414,30 +418,33 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
 /// An owned kd-tree.
 /// This type implements [`std::ops::Deref`] to [`KdSlice`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct KdTreeN<T, N: Unsigned>(PhantomData<N>, Vec<T>);
+pub struct KdTreeN<T, const N: usize>(PhantomData<[();N]>, Vec<T>);
+
 pub type KdTree<T> = KdTreeN<T, <T as KdPoint>::Dim>;
-impl<T, N: Unsigned> std::ops::Deref for KdTreeN<T, N> {
+
+impl<T, const N: usize> std::ops::Deref for KdTreeN<T, N> {
     type Target = KdSliceN<T, N>;
     fn deref(&self) -> &Self::Target {
         unsafe { KdSliceN::new_unchecked(&self.1) }
     }
 }
-impl<T, N: Unsigned> AsRef<KdSliceN<T, N>> for KdTreeN<T, N> {
+
+impl<T, const N: usize> AsRef<KdSliceN<T, N>> for KdTreeN<T, N> {
     fn as_ref(&self) -> &KdSliceN<T, N> {
         self
     }
 }
-impl<T, N: Unsigned> std::borrow::Borrow<KdSliceN<T, N>> for KdTreeN<T, N> {
+impl<T, const N: usize> std::borrow::Borrow<KdSliceN<T, N>> for KdTreeN<T, N> {
     fn borrow(&self) -> &KdSliceN<T, N> {
         self
     }
 }
-impl<T, N: Unsigned> From<KdTreeN<T, N>> for Vec<T> {
+impl<T, const N: usize> From<KdTreeN<T, N>> for Vec<T> {
     fn from(src: KdTreeN<T, N>) -> Self {
         src.1
     }
 }
-impl<T, N: Unsigned> KdTreeN<T, N> {
+impl<T, const N: usize> KdTreeN<T, N> {
     pub fn into_vec(self) -> Vec<T> {
         self.1
     }
@@ -462,7 +469,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     where
         F: Fn(&T, &T, usize) -> Ordering + Copy,
     {
-        kd_sort_by(&mut items, N::to_usize(), compare);
+        kd_sort_by(&mut items, N, compare);
         Self(PhantomData, items)
     }
 
@@ -502,7 +509,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     /// ```
     pub fn build_by_ordered_float(points: Vec<T>) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: num_traits::Float,
     {
         Self::build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
@@ -516,12 +523,13 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     /// ```
     pub fn build(points: Vec<T>) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: Ord,
     {
         Self::build_by_key(points, |item, k| item.at(k))
     }
 }
+
 #[cfg(feature = "serde")]
 mod impl_serde {
     use super::{KdTreeN, PhantomData, Unsigned};
@@ -536,6 +544,7 @@ mod impl_serde {
         }
     }
 }
+
 #[cfg(feature = "rayon")]
 impl<T: Send, N: Unsigned> KdTreeN<T, N> {
     /// Same as [`Self::build_by`], but using multiple threads.
@@ -585,12 +594,14 @@ impl<T: Send, N: Unsigned> KdTreeN<T, N> {
 /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1); // nearest() returns an index of items.
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KdIndexTreeN<'a, T, N: Unsigned> {
+pub struct KdIndexTreeN<'a, T, const N: usize> {
     source: &'a [T],
     kdtree: KdTreeN<usize, N>,
 }
+
 pub type KdIndexTree<'a, T> = KdIndexTreeN<'a, T, <T as KdPoint>::Dim>;
-impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
+
+impl<'a, T, const N: usize> KdIndexTreeN<'a, T, N> {
     pub fn source(&self) -> &'a [T] {
         self.source
     }
@@ -627,7 +638,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
 
     pub fn build_by_ordered_float(points: &'a [T]) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: num_traits::Float,
     {
         Self::build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
@@ -635,13 +646,13 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
 
     pub fn build(points: &'a [T]) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: Ord,
     {
         Self::build_by_key(points, |item, k| item.at(k))
     }
 
-    pub fn nearest_by<Q: KdPoint<Dim = N>>(
+    pub fn nearest_by<Q: KdPoint<N>>(
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
@@ -658,15 +669,15 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     /// ```
     pub fn nearest(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        query: &impl KdPoint<N, Scalar = T::Scalar>,
     ) -> Option<ItemAndDistance<usize, T::Scalar>>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         self.nearest_by(query, |item, k| item.at(k))
     }
 
-    pub fn nearests_by<Q: KdPoint<Dim = N>>(
+    pub fn nearests_by<Q: KdPoint<N>>(
         &self,
         query: &Q,
         num: usize,
@@ -688,11 +699,11 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     /// ```
     pub fn nearests(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        query: &impl KdPoint<N, Scalar = T::Scalar>,
         num: usize,
     ) -> Vec<ItemAndDistance<usize, T::Scalar>>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         self.nearests_by(query, num, |item, k| item.at(k))
     }
@@ -702,7 +713,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
             .within_by_cmp(|&index, k| compare(&self.source[index], k))
     }
 
-    pub fn within_by<Q: KdPoint<Dim = N>>(
+    pub fn within_by<Q: KdPoint<N>>(
         &self,
         query: &[Q; 2],
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
@@ -711,14 +722,14 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
             .within_by(query, |&index, k| coord(&self.source[index], k))
     }
 
-    pub fn within(&self, query: &[impl KdPoint<Scalar = T::Scalar, Dim = N>; 2]) -> Vec<&usize>
+    pub fn within(&self, query: &[impl KdPoint<N, Scalar = T::Scalar>; 2]) -> Vec<&usize>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         self.within_by(query, |item, k| item.at(k))
     }
 
-    pub fn within_radius_by<Q: KdPoint<Dim = N>>(
+    pub fn within_radius_by<Q: KdPoint<N>>(
         &self,
         query: &Q,
         radius: Q::Scalar,
@@ -730,15 +741,16 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
 
     pub fn within_radius(
         &self,
-        query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
+        query: &impl KdPoint<N, Scalar = T::Scalar>,
         radius: T::Scalar,
     ) -> Vec<&usize>
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
     {
         self.within_radius_by(query, radius, |item, k| item.at(k))
     }
 }
+
 #[cfg(feature = "rayon")]
 impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
     pub fn par_build_by<F>(source: &'a [T], compare: F) -> Self
@@ -780,41 +792,41 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
     }
 }
 
-macro_rules! define_kdtree_aliases {
-    ($($dim:literal),*) => {
-        $(
-            paste::paste! {
-                pub type [<KdSlice $dim>]<T> = KdSliceN<T, typenum::[<U $dim>]>;
-                pub type [<KdTree $dim>]<T> = KdTreeN<T, typenum::[<U $dim>]>;
-                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTreeN<'a, T, typenum::[<U $dim>]>;
-            }
-        )*
-    };
-}
-define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8);
+//macro_rules! define_kdtree_aliases {
+//    ($($dim:literal),*) => {
+//        $(
+//            paste::paste! {
+//                pub type [<KdSlice $dim>]<T> = KdSliceN<T, typenum::[<U $dim>]>;
+//                pub type [<KdTree $dim>]<T> = KdTreeN<T, typenum::[<U $dim>]>;
+//                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTreeN<'a, T, typenum::[<U $dim>]>;
+//            }
+//        )*
+//    };
+//}
+//define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8);
 
-macro_rules! impl_kd_points {
-    ($($len:literal),*) => {
-        $(
-            paste::paste!{
-                impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint for [T; $len] {
-                    type Scalar = T;
-                    type Dim = typenum::[<U $len>];
-                    fn at(&self, i: usize) -> T { self[i] }
-                }
-            }
-        )*
-    };
-}
-impl_kd_points!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+//macro_rules! impl_kd_points {
+//    ($($len:literal),*) => {
+//        $(
+//            paste::paste!{
+//                impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint for [T; $len] {
+//                    type Scalar = T;
+//                    type Dim = typenum::[<U $len>];
+//                    fn at(&self, i: usize) -> T { self[i] }
+//                }
+//            }
+//        )*
+//    };
+//}
+//impl_kd_points!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
 
-impl<P: KdPoint, T> KdPoint for (P, T) {
-    type Scalar = P::Scalar;
-    type Dim = P::Dim;
-    fn at(&self, k: usize) -> Self::Scalar {
-        self.0.at(k)
-    }
-}
+//impl<P: KdPoint, T> KdPoint for (P, T) {
+//    type Scalar = P::Scalar;
+//    type Dim = P::Dim;
+//    fn at(&self, k: usize) -> Self::Scalar {
+//        self.0.at(k)
+//    }
+//}
 
 /// kd-tree of key-value pairs.
 /// ```

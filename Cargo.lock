@@ -276,7 +276,6 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "typenum",
 ]
 
 [[package]]

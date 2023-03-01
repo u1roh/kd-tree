@@ -1,18 +1,18 @@
 use crate::{ItemAndDistance, KdPoint};
 
-pub fn kd_nearest<'a, T: KdPoint>(
+pub fn kd_nearest<'a, T: KdPoint<N>, const N: usize>(
     kdtree: &'a [T],
-    query: &impl KdPoint<Scalar = T::Scalar, Dim = T::Dim>,
+    query: &impl KdPoint<N, Scalar = T::Scalar>,
 ) -> ItemAndDistance<'a, T, T::Scalar> {
     kd_nearest_by(kdtree, query, |item, k| item.at(k))
 }
 
-pub fn kd_nearest_by<'a, T, P: KdPoint>(
+pub fn kd_nearest_by<'a, T, P: KdPoint<N>, const N: usize>(
     kdtree: &'a [T],
     query: &P,
     get: impl Fn(&T, usize) -> P::Scalar + Copy,
 ) -> ItemAndDistance<'a, T, P::Scalar> {
-    fn distance_squared<P: KdPoint, T>(
+    fn distance_squared<P: KdPoint<N>, T, const N: usize>(
         p1: &P,
         p2: &T,
         get: impl Fn(&T, usize) -> P::Scalar,
@@ -24,7 +24,7 @@ pub fn kd_nearest_by<'a, T, P: KdPoint>(
         }
         squared_distance
     }
-    fn recurse<'a, T, Q: KdPoint>(
+    fn recurse<'a, T, Q: KdPoint<N>, const N: usize>(
         nearest: &mut ItemAndDistance<'a, T, Q::Scalar>,
         kdtree: &'a [T],
         get: impl Fn(&T, usize) -> Q::Scalar + Copy,
