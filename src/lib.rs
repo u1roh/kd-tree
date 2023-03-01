@@ -3,7 +3,7 @@
 //! # Usage
 //! ```
 //! // construct kd-tree
-//! let kdtree = kd_tree::KdTree::build_by_ordered_float(vec![
+//! let kdtree = kd_tree::KdTree3::build_by_ordered_float(vec![
 //!     [1.0, 2.0, 3.0],
 //!     [3.0, 1.0, 2.0],
 //!     [2.0, 3.0, 1.0],
@@ -45,12 +45,14 @@ use within::*;
 ///     point: [f64; 3],
 ///     id: usize,
 /// }
-/// impl kd_tree::KdPoint for MyItem {
+///
+/// impl kd_tree::KdPoint<3> for MyItem {
 ///     type Scalar = f64;
-///     type Dim = typenum::U3;
+///
 ///     fn at(&self, k: usize) -> f64 { self.point[k] }
 /// }
-/// let kdtree: kd_tree::KdTree<MyItem> = kd_tree::KdTree::build_by_ordered_float(vec![
+///
+/// let kdtree: kd_tree::KdTree3<MyItem> = kd_tree::KdTree3::build_by_ordered_float(vec![
 ///     MyItem { point: [1.0, 2.0, 3.0], id: 111 },
 ///     MyItem { point: [3.0, 1.0, 2.0], id: 222 },
 ///     MyItem { point: [2.0, 3.0, 1.0], id: 333 },
@@ -151,9 +153,9 @@ impl<T, const N: usize> KdSliceN<T, N> {
 
     /// # Example
     /// ```
-    /// use kd_tree::KdSlice;
+    /// use kd_tree::KdSlice3;
     /// let mut items: Vec<[f64; 3]> = vec![[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0]];
-    /// let kdtree: &KdSlice<[f64; 3]> = KdSlice::sort_by_ordered_float(&mut items);
+    /// let kdtree: &KdSlice3<[f64; 3]> = KdSlice3::sort_by_ordered_float(&mut items);
     /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
     /// ```
     pub fn sort_by_ordered_float(points: &mut [T]) -> &Self
@@ -166,9 +168,9 @@ impl<T, const N: usize> KdSliceN<T, N> {
 
     /// # Example
     /// ```
-    /// use kd_tree::KdSlice;
+    /// use kd_tree::KdSlice3;
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
-    /// let kdtree: &KdSlice<[i32; 3]> = KdSlice::sort(&mut items);
+    /// let kdtree: &KdSlice3<[i32; 3]> = KdSlice3::sort(&mut items);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
     pub fn sort(points: &mut [T]) -> &Self
@@ -211,7 +213,7 @@ impl<T, const N: usize> KdSliceN<T, N> {
     /// # Example
     /// ```
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
-    /// let kdtree = kd_tree::KdSlice::sort(&mut items);
+    /// let kdtree = kd_tree::KdSlice3::sort(&mut items);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
     pub fn nearest(
@@ -278,7 +280,7 @@ impl<T, const N: usize> KdSliceN<T, N> {
     /// # Example
     /// ```
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1], [3, 2, 2]];
-    /// let kdtree = kd_tree::KdSlice::sort(&mut items);
+    /// let kdtree = kd_tree::KdSlice3::sort(&mut items);
     /// let nearests = kdtree.nearests(&[3, 1, 2], 2);
     /// assert_eq!(nearests.len(), 2);
     /// assert_eq!(nearests[0].item, &[3, 1, 2]);
@@ -321,7 +323,7 @@ impl<T, const N: usize> KdSliceN<T, N> {
     /// # Example
     /// ```
     /// let mut items: Vec<[i32; 2]> = vec![[0, 0], [1, 0], [0, 1], [1, 1]];
-    /// let kdtree = kd_tree::KdSlice::sort(&mut items);
+    /// let kdtree = kd_tree::KdSlice2::sort(&mut items);
     /// let within = kdtree.within(&[[1, 0], [2, 1]]);
     /// assert_eq!(within.len(), 2);
     /// assert!(within.contains(&&[1, 0]));
@@ -498,8 +500,8 @@ impl<T, const N: usize> KdTreeN<T, N> {
 
     /// # Example
     /// ```
-    /// use kd_tree::KdTree;
-    /// let kdtree: KdTree<[f64; 3]> = KdTree::build_by_ordered_float(vec![
+    /// use kd_tree::KdTree3;
+    /// let kdtree: KdTree3<[f64; 3]> = KdTree3::build_by_ordered_float(vec![
     ///     [1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0]
     /// ]);
     /// assert_eq!(kdtree.nearest(&[3.1, 0.9, 2.1]).unwrap().item, &[3.0, 1.0, 2.0]);
@@ -514,8 +516,8 @@ impl<T, const N: usize> KdTreeN<T, N> {
 
     /// # Example
     /// ```
-    /// use kd_tree::KdTree;
-    /// let kdtree: KdTree<[i32; 3]> = KdTree::build(vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]]);
+    /// use kd_tree::KdTree3;
+    /// let kdtree: KdTree3<[i32; 3]> = KdTree3::build(vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]]);
     /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &[3, 1, 2]);
     /// ```
     pub fn build(points: Vec<T>) -> Self
@@ -686,7 +688,7 @@ impl<'a, T, const N: usize> KdIndexTreeN<'a, T, N> {
     /// # Example
     /// ```
     /// let mut items: Vec<[i32; 3]> = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1], [3, 2, 2]];
-    /// let kdtree = kd_tree::KdIndexTree::build(&mut items);
+    /// let kdtree = kd_tree::KdIndexTree3::build(&mut items);
     /// let nearests = kdtree.nearests(&[3, 1, 2], 2);
     /// assert_eq!(nearests.len(), 2);
     /// assert_eq!(nearests[0].item, &1);
@@ -809,19 +811,17 @@ where T: num_traits::NumAssign + Copy + PartialOrd {
     }
 }
 
-// TODO: currently cannot be done without expressions in type constraints
-// https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html#const-generics-with-complex-expressions
-//impl<P: KdPoint<N>, T, const N: usize> KdPoint<{N+1}> for (P, T) {
-//    type Scalar = P::Scalar;
-//
-//    fn at(&self, k: usize) -> Self::Scalar {
-//        self.0.at(k)
-//    }
-//}
+impl<P: KdPoint<N>, T, const N: usize> KdPoint<{N}> for (P, T) {
+    type Scalar = P::Scalar;
+
+    fn at(&self, k: usize) -> Self::Scalar {
+        self.0.at(k)
+    }
+}
 
 /// kd-tree of key-value pairs.
 /// ```
-/// let kdmap: kd_tree::KdMap<[isize; 3], &'static str> = kd_tree::KdMap::build(vec![
+/// let kdmap: kd_tree::KdMap<[isize; 3], &'static str, 3> = kd_tree::KdMap::build(vec![
 ///     ([1, 2, 3], "foo"),
 ///     ([2, 3, 1], "bar"),
 ///     ([3, 1, 2], "buzz"),
