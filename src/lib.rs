@@ -531,13 +531,14 @@ impl<T, const N: usize> KdTreeN<T, N> {
 
 #[cfg(feature = "serde")]
 mod impl_serde {
-    use super::{KdTreeN, PhantomData, Unsigned};
-    impl<T: serde::Serialize, N: Unsigned> serde::Serialize for KdTreeN<T, N> {
+    use super::{KdTreeN, PhantomData};
+
+    impl<T: serde::Serialize, const N: usize> serde::Serialize for KdTreeN<T, N> {
         fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             self.1.serialize(serializer)
         }
     }
-    impl<'de, T: serde::Deserialize<'de>, N: Unsigned> serde::Deserialize<'de> for KdTreeN<T, N> {
+    impl<'de, T: serde::Deserialize<'de>, const N: usize> serde::Deserialize<'de> for KdTreeN<T, N> {
         fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
             Vec::<T>::deserialize(deserializer).map(|items| Self(PhantomData, items))
         }

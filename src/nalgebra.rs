@@ -5,12 +5,12 @@ macro_rules! impl_kdpoint_for_nalgebra_point {
     ($($dim:literal),*) => {
         $(
             paste::paste! {
-                impl<Scalar> KdPoint for nalgebra::Point<Scalar, $dim>
+                impl<Scalar> KdPoint<$dim> for nalgebra::Point<Scalar, $dim>
                 where
                     Scalar: num_traits::NumAssign + Copy + PartialOrd + nalgebra::Scalar,
                 {
                     type Scalar = Scalar;
-                    type Dim = typenum::[<U $dim>];
+
                     fn at(&self, k: usize) -> Scalar {
                         self[k]
                     }
@@ -24,13 +24,13 @@ macro_rules! impl_kdpoint_for_nalgebra_vector {
     ($($dim:literal),*) => {
         $(
             paste::paste! {
-                impl<Scalar, Storage> KdPoint for nalgebra::Vector<Scalar, nalgebra::Const<$dim>, Storage>
+                impl<Scalar, Storage> KdPoint<$dim> for nalgebra::Vector<Scalar, nalgebra::Const<$dim>, Storage>
                 where
                     Scalar: num_traits::NumAssign + Copy + PartialOrd + nalgebra::Scalar,
                     Storage: nalgebra::StorageMut<Scalar, nalgebra::Const<$dim>>
                 {
                     type Scalar = Scalar;
-                    type Dim = typenum::[<U $dim>];
+
                     fn at(&self, k: usize) -> Scalar {
                         self[k]
                     }
