@@ -81,7 +81,6 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdSliceN<T, const N: usize>(PhantomData<[(); N]>, [T]);
 
-
 impl<T, const N: usize> std::ops::Deref for KdSliceN<T, N> {
     type Target = [T];
     fn deref(&self) -> &[T] {
@@ -419,7 +418,7 @@ impl<T: Send, const N: usize> KdSliceN<T, N> {
 /// An owned kd-tree.
 /// This type implements [`std::ops::Deref`] to [`KdSlice`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct KdTreeN<T, const N: usize>(PhantomData<[();N]>, Vec<T>);
+pub struct KdTreeN<T, const N: usize>(PhantomData<[(); N]>, Vec<T>);
 
 impl<T, const N: usize> std::ops::Deref for KdTreeN<T, N> {
     type Target = KdSliceN<T, N>;
@@ -803,8 +802,10 @@ macro_rules! define_kdtree_aliases {
 }
 define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8);
 
-impl <T, const N: usize> KdPoint<N> for [T; N] 
-where T: num_traits::NumAssign + Copy + PartialOrd {
+impl<T, const N: usize> KdPoint<N> for [T; N]
+where
+    T: num_traits::NumAssign + Copy + PartialOrd,
+{
     type Scalar = T;
 
     fn at(&self, i: usize) -> Self::Scalar {
@@ -812,7 +813,7 @@ where T: num_traits::NumAssign + Copy + PartialOrd {
     }
 }
 
-impl<P: KdPoint<N>, T, const N: usize> KdPoint<{N}> for (P, T) {
+impl<P: KdPoint<N>, T, const N: usize> KdPoint<{ N }> for (P, T) {
     type Scalar = P::Scalar;
 
     fn at(&self, k: usize) -> Self::Scalar {

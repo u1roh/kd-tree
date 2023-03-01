@@ -26,7 +26,7 @@ pub fn kd_nearests_by<'a, T, P: KdPoint<N>, const N: usize>(
         }
         squared_distance
     }
-    fn recurse<'a, T, Q: KdPoint<N>, const N : usize>(
+    fn recurse<'a, T, Q: KdPoint<N>, const N: usize>(
         nearests: &mut Vec<ItemAndDistance<'a, T, Q::Scalar>>,
         kdtree: &'a [T],
         get: impl Fn(&T, usize) -> Q::Scalar + Copy,
