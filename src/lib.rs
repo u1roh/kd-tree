@@ -79,7 +79,9 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdSliceN<T, const N: usize>(PhantomData<[(); N]>, [T]);
 
-pub type KdSlice<T> = KdSliceN<T, <T as KdPoint>::DIM>;
+pub type KdSlice1<T> = KdSliceN<T, 1>;
+pub type KdSlice2<T> = KdSliceN<T, 2>;
+pub type KdSlice3<T> = KdSliceN<T, 3>;
 
 impl<T, const N: usize> std::ops::Deref for KdSliceN<T, N> {
     type Target = [T];
@@ -420,7 +422,9 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct KdTreeN<T, const N: usize>(PhantomData<[();N]>, Vec<T>);
 
-pub type KdTree<T> = KdTreeN<T, <T as KdPoint>::Dim>;
+pub type KdTree1<T> = KdTreeN<T, 1>;
+pub type KdTree2<T> = KdTreeN<T, 2>;
+pub type KdTree3<T> = KdTreeN<T, 3>;
 
 impl<T, const N: usize> std::ops::Deref for KdTreeN<T, N> {
     type Target = KdSliceN<T, N>;
@@ -599,7 +603,9 @@ pub struct KdIndexTreeN<'a, T, const N: usize> {
     kdtree: KdTreeN<usize, N>,
 }
 
-pub type KdIndexTree<'a, T> = KdIndexTreeN<'a, T, <T as KdPoint>::Dim>;
+pub type KdIndexTree1<'a, T> = KdIndexTreeN<'a, T, 1>;
+pub type KdIndexTree2<'a, T> = KdIndexTreeN<'a, T, 2>;
+pub type KdIndexTree3<'a, T> = KdIndexTreeN<'a, T, 3>;
 
 impl<'a, T, const N: usize> KdIndexTreeN<'a, T, N> {
     pub fn source(&self) -> &'a [T] {
@@ -837,7 +843,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
 /// ]);
 /// assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 /// ```
-pub type KdMap<P, T> = KdTree<(P, T)>;
+pub type KdMap<P, T, const N: usize> = KdTreeN<(P, T), N>;
 
 /// kd-tree slice of key-value pairs.
 /// ```
@@ -849,4 +855,4 @@ pub type KdMap<P, T> = KdTree<(P, T)>;
 /// let kdmap = kd_tree::KdMapSlice::sort(&mut items);
 /// assert_eq!(kdmap.nearest(&[3, 1, 2]).unwrap().item.1, "buzz");
 /// ```
-pub type KdMapSlice<P, T> = KdSlice<(P, T)>;
+pub type KdMapSlice<P, T, const N: usize> = KdSliceN<(P, T), N>;
