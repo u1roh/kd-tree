@@ -377,13 +377,13 @@ impl<T, const N: usize> KdSliceN<T, N> {
 }
 
 #[cfg(feature = "rayon")]
-impl<T: Send, N: Unsigned> KdSliceN<T, N> {
+impl<T: Send, const N: usize> KdSliceN<T, N> {
     /// Same as [`Self::sort_by`], but using multiple threads.
     pub fn par_sort_by<F>(items: &mut [T], compare: F) -> &Self
     where
         F: Fn(&T, &T, usize) -> Ordering + Copy + Send,
     {
-        kd_par_sort_by(items, N::to_usize(), compare);
+        kd_par_sort_by(items, N, compare);
         unsafe { Self::new_unchecked(items) }
     }
 
@@ -400,7 +400,7 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
     /// Same as [`Self::sort_by_ordered_float`], but using multiple threads.
     pub fn par_sort_by_ordered_float(points: &mut [T]) -> &Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: num_traits::Float,
     {
         Self::par_sort_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
@@ -409,7 +409,7 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
     /// Same as [`Self::sort`], but using multiple threads.
     pub fn par_sort(points: &mut [T]) -> &Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: Ord,
     {
         Self::par_sort_by_key(points, |item, k| item.at(k))
@@ -545,13 +545,13 @@ mod impl_serde {
 }
 
 #[cfg(feature = "rayon")]
-impl<T: Send, N: Unsigned> KdTreeN<T, N> {
+impl<T: Send, const N: usize> KdTreeN<T, N> {
     /// Same as [`Self::build_by`], but using multiple threads.
     pub fn par_build_by<F>(mut items: Vec<T>, compare: F) -> Self
     where
         F: Fn(&T, &T, usize) -> Ordering + Copy + Send,
     {
-        kd_par_sort_by(&mut items, N::to_usize(), compare);
+        kd_par_sort_by(&mut items, N, compare);
         Self(PhantomData, items)
     }
 
@@ -569,7 +569,7 @@ impl<T: Send, N: Unsigned> KdTreeN<T, N> {
     /// Same as [`Self::build_by_ordered_float`], but using multiple threads.
     pub fn par_build_by_ordered_float(points: Vec<T>) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: num_traits::Float,
     {
         Self::par_build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
@@ -578,7 +578,7 @@ impl<T: Send, N: Unsigned> KdTreeN<T, N> {
     /// Same as [`Self::build`], but using multiple threads.
     pub fn par_build(points: Vec<T>) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: Ord,
     {
         Self::par_build_by_key(points, |item, k| item.at(k))
@@ -749,7 +749,7 @@ impl<'a, T, const N: usize> KdIndexTreeN<'a, T, N> {
 }
 
 #[cfg(feature = "rayon")]
-impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
+impl<'a, T: Sync, const N: usize> KdIndexTreeN<'a, T, N> {
     pub fn par_build_by<F>(source: &'a [T], compare: F) -> Self
     where
         F: Fn(&T, &T, usize) -> Ordering + Copy + Send,
@@ -774,7 +774,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
 
     pub fn par_build_by_ordered_float(points: &'a [T]) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: num_traits::Float,
     {
         Self::par_build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
@@ -782,7 +782,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
 
     pub fn par_build(points: &'a [T]) -> Self
     where
-        T: KdPoint<Dim = N>,
+        T: KdPoint<N>,
         T::Scalar: Ord,
     {
         Self::par_build_by_key(points, |item, k| item.at(k))
