@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn test_nearest() {
     let mut gen3d = random3d_generator();
-    let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+    let kdtree = KdTree3::build_by_ordered_float(vec(10000, |_| gen3d()));
     for _ in 0..100 {
         let query = gen3d();
         let found = kdtree.nearest(&query).unwrap().item;
@@ -23,7 +23,7 @@ fn test_nearests() {
 }
 
 fn test_nearests_by(mut gen3d: impl FnMut() -> [f64; 3]) {
-    let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+    let kdtree = KdTree3::build_by_ordered_float(vec(10000, |_| gen3d()));
     const NUM: usize = 5;
     for _ in 0..100 {
         let query = gen3d();
@@ -51,7 +51,7 @@ fn test_nearests_by(mut gen3d: impl FnMut() -> [f64; 3]) {
 #[test]
 fn test_within() {
     let mut gen3d = random3d_generator();
-    let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+    let kdtree = KdTree3::build_by_ordered_float(vec(10000, |_| gen3d()));
     for _ in 0..100 {
         let mut p1 = gen3d();
         let mut p2 = gen3d();
@@ -71,14 +71,14 @@ fn test_within() {
 
 #[test]
 fn test_within_against_empty() {
-    let empty: KdTree<[f64; 3]> = KdTree::build_by_ordered_float(vec![]);
+    let empty: KdTree3<[f64; 3]> = KdTree3::build_by_ordered_float(vec![]);
     assert!(empty.within(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]).is_empty());
 }
 
 #[test]
 fn test_within_radius() {
     let mut gen3d = random3d_generator();
-    let kdtree = KdTree::build_by_ordered_float(vec(10000, |_| gen3d()));
+    let kdtree = KdTree3::build_by_ordered_float(vec(10000, |_| gen3d()));
     const RADIUS: f64 = 0.1;
     for _ in 0..100 {
         let query = gen3d();

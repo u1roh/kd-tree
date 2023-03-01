@@ -79,9 +79,6 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdSliceN<T, const N: usize>(PhantomData<[(); N]>, [T]);
 
-pub type KdSlice1<T> = KdSliceN<T, 1>;
-pub type KdSlice2<T> = KdSliceN<T, 2>;
-pub type KdSlice3<T> = KdSliceN<T, 3>;
 
 impl<T, const N: usize> std::ops::Deref for KdSliceN<T, N> {
     type Target = [T];
@@ -422,10 +419,6 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct KdTreeN<T, const N: usize>(PhantomData<[();N]>, Vec<T>);
 
-pub type KdTree1<T> = KdTreeN<T, 1>;
-pub type KdTree2<T> = KdTreeN<T, 2>;
-pub type KdTree3<T> = KdTreeN<T, 3>;
-
 impl<T, const N: usize> std::ops::Deref for KdTreeN<T, N> {
     type Target = KdSliceN<T, N>;
     fn deref(&self) -> &Self::Target {
@@ -594,7 +587,7 @@ impl<T: Send, N: Unsigned> KdTreeN<T, N> {
 /// Unlike [`KdSliceN::sort`], [`KdIndexTreeN::build`] doesn't sort input items.
 /// ```
 /// let items = vec![[1, 2, 3], [3, 1, 2], [2, 3, 1]];
-/// let kdtree = kd_tree::KdIndexTree::build(&items);
+/// let kdtree = kd_tree::KdIndexTree3::build(&items);
 /// assert_eq!(kdtree.nearest(&[3, 1, 2]).unwrap().item, &1); // nearest() returns an index of items.
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -602,10 +595,6 @@ pub struct KdIndexTreeN<'a, T, const N: usize> {
     source: &'a [T],
     kdtree: KdTreeN<usize, N>,
 }
-
-pub type KdIndexTree1<'a, T> = KdIndexTreeN<'a, T, 1>;
-pub type KdIndexTree2<'a, T> = KdIndexTreeN<'a, T, 2>;
-pub type KdIndexTree3<'a, T> = KdIndexTreeN<'a, T, 3>;
 
 impl<'a, T, const N: usize> KdIndexTreeN<'a, T, N> {
     pub fn source(&self) -> &'a [T] {
@@ -798,37 +787,33 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
     }
 }
 
-//macro_rules! define_kdtree_aliases {
-//    ($($dim:literal),*) => {
-//        $(
-//            paste::paste! {
-//                pub type [<KdSlice $dim>]<T> = KdSliceN<T, typenum::[<U $dim>]>;
-//                pub type [<KdTree $dim>]<T> = KdTreeN<T, typenum::[<U $dim>]>;
-//                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTreeN<'a, T, typenum::[<U $dim>]>;
-//            }
-//        )*
-//    };
-//}
-//define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8);
+macro_rules! define_kdtree_aliases {
+    ($($dim:literal),*) => {
+        $(
+            paste::paste! {
+                pub type [<KdSlice $dim>]<T> = KdSliceN<T, $dim>;
+                pub type [<KdTree $dim>]<T> = KdTreeN<T, $dim>;
+                pub type [<KdIndexTree $dim>]<'a, T> = KdIndexTreeN<'a, T, $dim>;
+            }
+        )*
+    };
+}
+define_kdtree_aliases!(1, 2, 3, 4, 5, 6, 7, 8);
 
-//macro_rules! impl_kd_points {
-//    ($($len:literal),*) => {
-//        $(
-//            paste::paste!{
-//                impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint for [T; $len] {
-//                    type Scalar = T;
-//                    type Dim = typenum::[<U $len>];
-//                    fn at(&self, i: usize) -> T { self[i] }
-//                }
-//            }
-//        )*
-//    };
-//}
-//impl_kd_points!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+impl <T, const N: usize> KdPoint<N> for [T; N] 
+where T: num_traits::NumAssign + Copy + PartialOrd {
+    type Scalar = T;
 
-//impl<P: KdPoint, T> KdPoint for (P, T) {
+    fn at(&self, i: usize) -> Self::Scalar {
+        self[i]
+    }
+}
+
+// TODO: currently cannot be done without expressions in type constraints
+// https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html#const-generics-with-complex-expressions
+//impl<P: KdPoint<N>, T, const N: usize> KdPoint<{N+1}> for (P, T) {
 //    type Scalar = P::Scalar;
-//    type Dim = P::Dim;
+//
 //    fn at(&self, k: usize) -> Self::Scalar {
 //        self.0.at(k)
 //    }
