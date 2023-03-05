@@ -77,7 +77,7 @@ pub struct ItemAndDistance<'a, T, Scalar> {
 /// A slice of kd-tree.
 /// This type implements [`std::ops::Deref`] to `[T]`.
 /// This is an unsized type, meaning that it must always be used as a reference.
-/// For an owned version of this type, see [`KdTree`].
+/// For an owned version of this type, see [`KdTreeN`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdSliceN<T, const N: usize>(PhantomData<[(); N]>, [T]);
 
@@ -416,7 +416,7 @@ impl<T: Send, const N: usize> KdSliceN<T, N> {
 }
 
 /// An owned kd-tree.
-/// This type implements [`std::ops::Deref`] to [`KdSlice`].
+/// This type implements [`std::ops::Deref`] to [`KdSliceN`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct KdTreeN<T, const N: usize>(PhantomData<[(); N]>, Vec<T>);
 
