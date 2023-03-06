@@ -9,7 +9,7 @@ fn bench_kdtree_construction(c: &mut Criterion) {
             log10n,
             |b, log10n| {
                 let points = gen_points3d(10usize.pow(*log10n));
-                b.iter(|| KdTree::build_by_ordered_float(points.clone()));
+                b.iter(|| KdTreeN::build_by_ordered_float(points.clone()));
             },
         );
         group.bench_with_input(
@@ -17,7 +17,7 @@ fn bench_kdtree_construction(c: &mut Criterion) {
             log10n,
             |b, log10n| {
                 let points = gen_points3i(10usize.pow(*log10n));
-                b.iter(|| KdTree::build(points.clone()));
+                b.iter(|| KdTreeN::build(points.clone()));
             },
         );
         #[cfg(feature = "rayon")]
@@ -27,7 +27,7 @@ fn bench_kdtree_construction(c: &mut Criterion) {
                 log10n,
                 |b, log10n| {
                     let points = gen_points3d(10usize.pow(*log10n));
-                    b.iter(|| KdTree::par_build_by_ordered_float(points.clone()));
+                    b.iter(|| KdTreeN::par_build_by_ordered_float(points.clone()));
                 },
             );
             group.bench_with_input(
@@ -35,7 +35,7 @@ fn bench_kdtree_construction(c: &mut Criterion) {
                 log10n,
                 |b, log10n| {
                     let points = gen_points3i(10usize.pow(*log10n));
-                    b.iter(|| KdTree::par_build(points.clone()));
+                    b.iter(|| KdTreeN::par_build(points.clone()));
                 },
             );
         }
@@ -44,7 +44,7 @@ fn bench_kdtree_construction(c: &mut Criterion) {
             log10n,
             |b, log10n| {
                 let points = gen_points3d(10usize.pow(*log10n));
-                b.iter(|| KdIndexTree::build_by_ordered_float(&points));
+                b.iter(|| KdIndexTreeN::build_by_ordered_float(&points));
             },
         );
         group.bench_with_input(
@@ -76,7 +76,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             BenchmarkId::new("kd_tree (f64)", log10n),
             log10n,
             |b, log10n| {
-                let kdtree = KdTree::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
+                let kdtree = KdTreeN::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
                 b.iter(|| {
                     let i = rng.gen::<usize>() % kdtree.len();
                     assert_eq!(
@@ -90,7 +90,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             BenchmarkId::new("kd_tree (i32)", log10n),
             log10n,
             |b, log10n| {
-                let kdtree = KdTree::build(gen_points3i(10usize.pow(*log10n)));
+                let kdtree = KdTreeN::build(gen_points3i(10usize.pow(*log10n)));
                 b.iter(|| {
                     let i = rng.gen::<usize>() % kdtree.len();
                     assert_eq!(
@@ -105,7 +105,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             log10n,
             |b, log10n| {
                 let points = gen_points3d(10usize.pow(*log10n));
-                let kdtree = KdIndexTree::build_by_ordered_float(&points);
+                let kdtree = KdIndexTreeN::build_by_ordered_float(&points);
                 b.iter(|| {
                     let i = rng.gen::<usize>() % points.len();
                     assert_eq!(kdtree.nearest(&points[i]).unwrap().item, &i);
@@ -116,7 +116,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             BenchmarkId::new("kd_tree/nearests", log10n),
             log10n,
             |b, log10n| {
-                let kdtree = KdTree::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
+                let kdtree = KdTreeN::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
                 b.iter(|| {
                     let i = rng.gen::<usize>() % kdtree.len();
                     assert_eq!(
@@ -171,8 +171,8 @@ fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
         }
         kdtree
     };
-    let kd_tree = KdTree::build_by_ordered_float(points.clone());
-    let kd_index_tree = KdIndexTree::build_by_ordered_float(&points);
+    let kd_tree = KdTreeN::build_by_ordered_float(points.clone());
+    let kd_index_tree = KdIndexTreeN::build_by_ordered_float(&points);
     for k in &[1, 5, 10, 20, 50] {
         group.bench_with_input(BenchmarkId::new("kd_tree", k), k, |b, k| {
             b.iter(|| {
@@ -216,8 +216,8 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
         }
         kdtree
     };
-    let kd_tree = KdTree::build_by_ordered_float(points.clone());
-    let kd_index_tree = KdIndexTree::build_by_ordered_float(&points);
+    let kd_tree = KdTreeN::build_by_ordered_float(points.clone());
+    let kd_index_tree = KdIndexTreeN::build_by_ordered_float(&points);
     for radius in &[0.05, 0.1, 0.2, 0.4] {
         group.bench_with_input(BenchmarkId::new("kd_tree", radius), radius, |b, radius| {
             b.iter(|| {
@@ -261,9 +261,8 @@ struct TestItem<T> {
     coord: [T; 3],
     id: usize,
 }
-impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint for TestItem<T> {
+impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint<3> for TestItem<T> {
     type Scalar = T;
-    type Dim = typenum::U3;
     fn at(&self, k: usize) -> T {
         self.coord[k]
     }
