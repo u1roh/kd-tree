@@ -12,7 +12,7 @@ pub fn kd_sort_by<T>(
         kd_compare: impl Fn(&T, &T, usize) -> Ordering + Copy,
     ) {
         if items.len() >= 2 {
-            pdqselect::select_by(items, items.len() / 2, |x, y| kd_compare(x, y, axis));
+            items.select_nth_unstable_by(items.len() / 2, |x, y| kd_compare(x, y, axis));
             let mid = items.len() / 2;
             let axis = (axis + 1) % dim;
             recurse(&mut items[..mid], axis, dim, kd_compare);
@@ -35,7 +35,7 @@ pub fn kd_par_sort_by<T: Send>(
         kd_compare: impl Fn(&T, &T, usize) -> Ordering + Copy + Send,
     ) {
         if items.len() >= 2 {
-            pdqselect::select_by(items, items.len() / 2, |x, y| kd_compare(x, y, axis));
+            items.select_nth_unstable_by(items.len() / 2, |x, y| kd_compare(x, y, axis));
             let mid = items.len() / 2;
             let axis = (axis + 1) % dim;
             let (lhs, rhs) = items.split_at_mut(mid);
