@@ -157,7 +157,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     pub fn sort_by_ordered_float(points: &mut [T]) -> &Self
     where
         T: KdPoint<Dim = N>,
-        T::Scalar: ordered_float::FloatCore,
+        T::Scalar: num_traits::Float,
     {
         Self::sort_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
@@ -396,7 +396,7 @@ impl<T: Send, N: Unsigned> KdSliceN<T, N> {
     pub fn par_sort_by_ordered_float(points: &mut [T]) -> &Self
     where
         T: KdPoint<Dim = N>,
-        T::Scalar: ordered_float::FloatCore,
+        T::Scalar: num_traits::Float,
     {
         Self::par_sort_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
@@ -503,7 +503,7 @@ impl<T, N: Unsigned> KdTreeN<T, N> {
     pub fn build_by_ordered_float(points: Vec<T>) -> Self
     where
         T: KdPoint<Dim = N>,
-        T::Scalar: ordered_float::FloatCore,
+        T::Scalar: num_traits::Float,
     {
         Self::build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
@@ -562,7 +562,7 @@ impl<T: Send, N: Unsigned> KdTreeN<T, N> {
     pub fn par_build_by_ordered_float(points: Vec<T>) -> Self
     where
         T: KdPoint<Dim = N>,
-        T::Scalar: ordered_float::FloatCore,
+        T::Scalar: num_traits::Float,
     {
         Self::par_build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
@@ -628,7 +628,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     pub fn build_by_ordered_float(points: &'a [T]) -> Self
     where
         T: KdPoint<Dim = N>,
-        T::Scalar: ordered_float::FloatCore,
+        T::Scalar: num_traits::Float,
     {
         Self::build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
@@ -766,7 +766,7 @@ impl<'a, T: Sync, N: Unsigned> KdIndexTreeN<'a, T, N> {
     pub fn par_build_by_ordered_float(points: &'a [T]) -> Self
     where
         T: KdPoint<Dim = N>,
-        T::Scalar: ordered_float::FloatCore,
+        T::Scalar: num_traits::Float,
     {
         Self::par_build_by_key(points, |item, k| ordered_float::OrderedFloat(item.at(k)))
     }
@@ -797,7 +797,7 @@ macro_rules! impl_kd_points {
     ($($len:literal),*) => {
         $(
             paste::paste!{
-                impl<T: num_traits::NumAssign + Copy + PartialOrd + ordered_float::FloatCore> KdPoint for [T; $len] {
+                impl<T: num_traits::NumAssign + Copy + PartialOrd> KdPoint for [T; $len] {
                     type Scalar = T;
                     type Dim = typenum::[<U $len>];
                     fn at(&self, i: usize) -> T { self[i] }
