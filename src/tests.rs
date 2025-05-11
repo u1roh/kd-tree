@@ -100,16 +100,16 @@ fn squared_distance<T: num_traits::Num + Copy>(p1: &[T; 3], p2: &[T; 3]) -> T {
 
 fn random3d_generator() -> impl FnMut() -> [f64; 3] {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
-    move || [rng.gen(), rng.gen(), rng.gen()]
+    let mut rng = rand::rng();
+    move || [rng.random(), rng.random(), rng.random()]
 }
 
 fn random3d_10th_generator() -> impl FnMut() -> [f64; 3] {
     // generates a random number between 0 and 1 with 0.1 step
     fn random_10th(rng: &mut impl rand::Rng) -> f64 {
-        f64::from(rng.gen_range(0u8..=10u8)) / 10.0
+        f64::from(rng.random_range(0u8..=10u8)) / 10.0
     }
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     move || {
         [
             random_10th(&mut rng),
