@@ -69,7 +69,7 @@ fn bench_kdtree_construction(c: &mut Criterion) {
 
 fn bench_kdtree_nearest_search(c: &mut Criterion) {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group("nearest");
     for log10n in &[2, 3, 4] {
         group.bench_with_input(
@@ -78,7 +78,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             |b, log10n| {
                 let kdtree = KdTree::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
                 b.iter(|| {
-                    let i = rng.gen::<usize>() % kdtree.len();
+                    let i: usize = rng.random::<u128>() as usize % kdtree.len();
                     assert_eq!(
                         kdtree.nearest(&kdtree[i]).unwrap().item.coord,
                         kdtree[i].coord
@@ -92,7 +92,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             |b, log10n| {
                 let kdtree = KdTree::build(gen_points3i(10usize.pow(*log10n)));
                 b.iter(|| {
-                    let i = rng.gen::<usize>() % kdtree.len();
+                    let i: usize = rng.random::<u128>() as usize % kdtree.len();
                     assert_eq!(
                         kdtree.nearest(&kdtree[i]).unwrap().item.coord,
                         kdtree[i].coord
@@ -107,7 +107,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
                 let points = gen_points3d(10usize.pow(*log10n));
                 let kdtree = KdIndexTree::build_by_ordered_float(&points);
                 b.iter(|| {
-                    let i = rng.gen::<usize>() % points.len();
+                    let i: usize = rng.random::<u128>() as usize % points.len();
                     assert_eq!(kdtree.nearest(&points[i]).unwrap().item, &i);
                 });
             },
@@ -118,7 +118,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
             |b, log10n| {
                 let kdtree = KdTree::build_by_ordered_float(gen_points3d(10usize.pow(*log10n)));
                 b.iter(|| {
-                    let i = rng.gen::<usize>() % kdtree.len();
+                    let i: usize = rng.random::<u128>() as usize % kdtree.len();
                     assert_eq!(
                         kdtree.nearests(&kdtree[i], 1)[0].item.coord,
                         kdtree[i].coord
@@ -133,7 +133,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
                 let mut points = gen_points3d(10usize.pow(*log10n));
                 let kdtree = fux_kdtree::kdtree::Kdtree::new(&mut points);
                 b.iter(|| {
-                    let i = rng.gen::<usize>() % points.len();
+                    let i: usize = rng.random::<u128>() as usize % points.len();
                     assert_eq!(kdtree.nearest_search(&points[i]).coord, points[i].coord);
                 });
             },
@@ -145,7 +145,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
                 kdtree.add(&p.coord, p.id).unwrap();
             }
             b.iter(|| {
-                let i = rng.gen::<usize>() % points.len();
+                let i: usize = rng.random::<u128>() as usize % points.len();
                 assert_eq!(
                     kdtree
                         .nearest(&points[i].coord, 1, &kdtree::distance::squared_euclidean)
@@ -160,7 +160,7 @@ fn bench_kdtree_nearest_search(c: &mut Criterion) {
 
 fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group("nearests");
     const N: usize = 100000;
     let points = gen_points3d(N);
@@ -171,26 +171,27 @@ fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
         }
         kdtree
     };
-    let kd_tree = KdTree::build_by_ordered_float(points.clone());
+    let kd_tree: kd_tree::KdTree<_> = KdTree::build_by_ordered_float(points.clone());
     let kd_index_tree = KdIndexTree::build_by_ordered_float(&points);
     for k in &[1, 5, 10, 20, 50] {
         group.bench_with_input(BenchmarkId::new("kd_tree", k), k, |b, k| {
             b.iter(|| {
-                let i = rng.gen::<usize>() % kd_tree.len();
+                let i: usize = rng.random::<u128>() as usize % kd_tree.len();
                 let nearests = kd_tree.nearests(&kd_tree[i], *k);
-                assert_eq!(nearests[0].item.coord, kd_tree[i].coord);
+                let computed = nearests[0].item.coord;
+                assert_eq!(computed, kd_tree[i].coord);
             });
         });
         group.bench_with_input(BenchmarkId::new("kd_index_tree", k), k, |b, k| {
             b.iter(|| {
-                let i = rng.gen::<usize>() % points.len();
+                let i: usize = rng.random::<u128>() as usize % points.len();
                 let nearests = kd_index_tree.nearests(&points[i], *k);
                 assert_eq!(nearests[0].item, &i);
             });
         });
         group.bench_with_input(BenchmarkId::new("kdtree", k), k, |b, k| {
             b.iter(|| {
-                let i = rng.gen::<usize>() % N;
+                let i: usize = rng.random::<u128>() as usize % N;
                 assert_eq!(
                     kdtree
                         .nearest(&points[i].coord, *k, &kdtree::distance::squared_euclidean)
@@ -205,7 +206,7 @@ fn bench_kdtree_k_nearest_search(c: &mut Criterion) {
 
 fn bench_kdtree_within_radius(c: &mut Criterion) {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group("within_radius");
     const N: usize = 100000;
     let points = gen_points3d(N);
@@ -221,7 +222,7 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
     for radius in &[0.05, 0.1, 0.2, 0.4] {
         group.bench_with_input(BenchmarkId::new("kd_tree", radius), radius, |b, radius| {
             b.iter(|| {
-                let i = rng.gen::<usize>() % kd_tree.len();
+                let i = rng.random::<u128>() as usize % kd_tree.len();
                 let _neighbors = kd_tree.within_radius(&kd_tree[i], *radius);
             });
         });
@@ -230,14 +231,14 @@ fn bench_kdtree_within_radius(c: &mut Criterion) {
             radius,
             |b, radius| {
                 b.iter(|| {
-                    let i = rng.gen::<usize>() % kd_tree.len();
+                    let i = rng.random::<u128>() as usize % kd_tree.len();
                     let _neighbors = kd_index_tree.within_radius(&points[i], *radius);
                 });
             },
         );
         group.bench_with_input(BenchmarkId::new("kdtree", radius), radius, |b, radius| {
             b.iter(|| {
-                let i = rng.gen::<usize>() % N;
+                let i = rng.random::<u128>() as usize % N;
                 let _neighbors = kdtree
                     .within(
                         &points[i].coord,
@@ -256,7 +257,7 @@ criterion_group!(benches3, bench_kdtree_k_nearest_search);
 criterion_group!(benches4, bench_kdtree_within_radius);
 criterion_main!(benches1, benches2, benches3, benches4);
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 struct TestItem<T> {
     coord: [T; 3],
     id: usize,
@@ -276,10 +277,10 @@ impl fux_kdtree::kdtree::KdtreePointTrait for TestItem<f64> {
 
 fn gen_points3d(count: usize) -> Vec<TestItem<f64>> {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut points = Vec::with_capacity(count);
     for id in 0..count {
-        let coord = [rng.gen(), rng.gen(), rng.gen()];
+        let coord = [rng.random(), rng.random(), rng.random()];
         points.push(TestItem { coord, id });
     }
     points
@@ -287,14 +288,14 @@ fn gen_points3d(count: usize) -> Vec<TestItem<f64>> {
 
 fn gen_points3i(count: usize) -> Vec<TestItem<i32>> {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut points = Vec::with_capacity(count);
     const N: i32 = 1000;
     for id in 0..count {
         let coord = [
-            rng.gen::<i32>() % N,
-            rng.gen::<i32>() % N,
-            rng.gen::<i32>() % N,
+            rng.random::<i32>() % N,
+            rng.random::<i32>() % N,
+            rng.random::<i32>() % N,
         ];
         points.push(TestItem { coord, id });
     }
