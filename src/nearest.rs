@@ -72,7 +72,7 @@ pub fn kd_nearest_with<T, Scalar>(
     kdtree: &[T],
     dim: usize,
     kd_difference: impl Fn(&T, usize) -> Scalar + Copy,
-) -> ItemAndDistance<T, Scalar>
+) -> ItemAndDistance<'_, T, Scalar>
 where
     Scalar: num_traits::NumAssign + Copy + PartialOrd,
 {

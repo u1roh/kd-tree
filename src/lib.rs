@@ -197,7 +197,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> Option<ItemAndDistance<T, Q::Scalar>> {
+    ) -> Option<ItemAndDistance<'_, T, Q::Scalar>> {
         if self.is_empty() {
             None
         } else {
@@ -215,7 +215,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
-    ) -> Option<ItemAndDistance<T, T::Scalar>>
+    ) -> Option<ItemAndDistance<'_, T, T::Scalar>>
     where
         T: KdPoint<Dim = N>,
     {
@@ -236,7 +236,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
     pub fn nearest_with<Scalar>(
         &self,
         kd_difference: impl Fn(&T, usize) -> Scalar + Copy,
-    ) -> ItemAndDistance<T, Scalar>
+    ) -> ItemAndDistance<'_, T, Scalar>
     where
         Scalar: num_traits::NumAssign + Copy + PartialOrd,
     {
@@ -268,7 +268,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         query: &Q,
         num: usize,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> Vec<ItemAndDistance<T, Q::Scalar>> {
+    ) -> Vec<ItemAndDistance<'_, T, Q::Scalar>> {
         kd_nearests_by(self.items(), query, num, coord)
     }
 
@@ -286,7 +286,7 @@ impl<T, N: Unsigned> KdSliceN<T, N> {
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
         num: usize,
-    ) -> Vec<ItemAndDistance<T, T::Scalar>>
+    ) -> Vec<ItemAndDistance<'_, T, T::Scalar>>
     where
         T: KdPoint<Dim = N>,
     {
@@ -645,7 +645,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
         &self,
         query: &Q,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> Option<ItemAndDistance<usize, Q::Scalar>> {
+    ) -> Option<ItemAndDistance<'_, usize, Q::Scalar>> {
         self.kdtree
             .nearest_by(query, |&index, k| coord(&self.source[index], k))
     }
@@ -659,7 +659,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
     pub fn nearest(
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
-    ) -> Option<ItemAndDistance<usize, T::Scalar>>
+    ) -> Option<ItemAndDistance<'_, usize, T::Scalar>>
     where
         T: KdPoint<Dim = N>,
     {
@@ -671,7 +671,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
         query: &Q,
         num: usize,
         coord: impl Fn(&T, usize) -> Q::Scalar + Copy,
-    ) -> Vec<ItemAndDistance<usize, Q::Scalar>> {
+    ) -> Vec<ItemAndDistance<'_, usize, Q::Scalar>> {
         self.kdtree
             .nearests_by(query, num, |&index, k| coord(&self.source[index], k))
     }
@@ -690,7 +690,7 @@ impl<'a, T, N: Unsigned> KdIndexTreeN<'a, T, N> {
         &self,
         query: &impl KdPoint<Scalar = T::Scalar, Dim = N>,
         num: usize,
-    ) -> Vec<ItemAndDistance<usize, T::Scalar>>
+    ) -> Vec<ItemAndDistance<'_, usize, T::Scalar>>
     where
         T: KdPoint<Dim = N>,
     {
